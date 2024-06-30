@@ -13,3 +13,11 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/items")
+def items():
+    return render_template("items.html")
+
+@app.route("/report")
+def report():
+    return render_template("report.html")
+
