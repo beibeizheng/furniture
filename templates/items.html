@@ -8,6 +8,46 @@
 {% block content %}
     
 <div class="container">
-    <p>hhhh</p>
+    <h2>Product List</h2>
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Photo</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Buy Date</th>
+                <th>Buy Price</th>
+                <th>Buy Platform</th>
+                <th>Sell Date</th>
+                <th>Sell Price</th>
+                <th>Sell Platform</th>
+                <th>Trading Days(day)</th>
+                <th>Fees</th>
+                <th>Earnings($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in product_list %}
+            <tr>
+                <td>
+                    <img src="{{ url_for('static', filename='images/' +'Picture1.jpg') }}" alt="{{ product.name }}" style="width:100px;height:100px;">
+                </td>
+                <td>{{ product[0] }}</td>
+                <td>{{ product[1] }}</td>
+                <td>{{ product[2] }}</td>
+                <td>{{ product[3] }}</td>
+                <td>{{ product[4] }}</td>
+                <td>{{ product[5] }}</td>
+                <td>{{ product[6] }}</td>
+                <td>{{ product[7] }}</td>
+                <td>{{ product[8] }}</td>
+                <td>{{ product[6] | days_diff(product[3]) }} days</td>
+                <td>{{ product[9] }}</td>
+                <td>{{ product[7]-product[4]}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

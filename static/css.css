@@ -92,6 +92,20 @@ div.content {
   }
  
 
+  /* items page */
+  .items table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  
+  .items th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+
+
 @media screen and (max-width: 1400px) {
   ul.sidenav {
     width: 100%;

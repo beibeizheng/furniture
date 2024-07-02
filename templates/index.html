@@ -8,7 +8,7 @@
 {% block content %}
     
 <div class="container">
-    <form action="/submit" method="post">
+    <form action="/submit" method="post" enctype="multipart/form-data">
         <div class="row">
             <div class="col-25">
                 <label for="product_name">Product Name</label>
@@ -22,7 +22,7 @@
                 <label for="product_image">Product Image</label>
             </div>
             <div class="col-75">
-                <input type="file" id="product_image" name="product_image">
+                <input type="file" id="product_image" name="product_image" accept=".png, .jpg, .jpeg, .gif" required>
             </div>
         </div>
         <div class="row">
@@ -31,7 +31,7 @@
             </div>
             <div class="col-75">
                 <select id="product_category" name="product_category">
-                    <option value="">Select a opinion</option>
+                    <option value="" selected disabled>Select a opinion</option>
                     <option value="bed">Bed</option>
                     <option value="sofa">Sofa</option>
                     <option value="motor">Motor</option>
@@ -45,7 +45,12 @@
                 <label for="product_status">Product Status</label>
             </div>
             <div class="col-75">
-                <input type="text" id="product_status" name="product_status" placeholder="Product status..">
+                <select id="product_status" name="product_status">
+                    <option value="" selected disabled>Select a opinion</option>
+                    <option value="bed">Sold</option>
+                    <option value="sofa">Selling</option>
+                    <option value="motor">Own use</option>
+                </select>
             </div>
         </div>
         <div class="row">
