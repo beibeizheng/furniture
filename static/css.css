@@ -90,6 +90,10 @@ div.content {
     display: table;
     clear: both;
   }
+
+  .additional-info {
+    display: none;
+}
  
 
   /* items page */
