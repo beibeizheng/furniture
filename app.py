@@ -50,6 +50,10 @@ def home():
         buy_price = request.form['buy_price']
         buy_platform_id = request.form['buy_platform']
         file = request.files['product_image']
+        sell_date = request.form['sell_date']
+        sell_price = request.form['sell_price']
+        sell_platform = request.form['sell_platform']
+        fees = request.form['fees']
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
@@ -57,8 +61,8 @@ def home():
             product_image = os.path.join('images', filename)
             print('file',filename)
             connection = getCursor()
-            connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id,image_name)
-            VALUES (%s, %s, %s, %s, %s, %s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,filename,))
+            connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id,sell_date,sell_price,sell_platform_id,fees,image_name)
+            VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,sell_date,sell_price,sell_platform,fees,filename,))
             return redirect(url_for('home'))
     else:
         connection1 = getCursor()
