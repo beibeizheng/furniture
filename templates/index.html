@@ -32,11 +32,9 @@
             <div class="col-75">
                 <select id="product_category" name="product_category">
                     <option value="" selected disabled>Select a opinion</option>
-                    <option value=1>Bed</option>
-                    <option value=2>Sofa</option>
-                    <option value=3>Motor</option>
-                    <option value=4>Furniture</option>
-                    <option value=5>Outdoor</option>
+                    {% for category in categoryList %}
+                    <option value={{category[0]}}>{{category[1]}}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
@@ -47,9 +45,9 @@
             <div class="col-75">
                 <select id="product_status" name="product_status" onchange="showAdditionalInfo()" required>
                     <option value="" selected disabled>Select a opinion</option>
-                    <option value=1>Sold</option>
-                    <option value=2>Selling</option>
-                    <option value=3>Own use</option>
+                    {% for status in statusList %}
+                        <option value={{status[0]}}>{{status[1]}}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
@@ -75,11 +73,12 @@
             </div>
             <div class="col-75">
                 <select id="buy_platform" name="buy_platform">
+                
                     <option value="" selected disabled>Select a opinion</option>
-                    <option value=1>Auction</option>
-                    <option value=2>Trademe</option>
-                    <option value=3>Facebook</option>
-                    <option value=4>Wechat</option>
+                    {% for platform in platformList %}
+                        <option value={{platform[0]}}>{{platform[1]}}</option>
+                    {% endfor %}
+                    
                 </select>
             </div>
         </div>
@@ -107,10 +106,9 @@
             <div class="col-75">
                 <select id="sell_platform" name="sell_platform">
                     <option value="" selected disabled>Select a opinion</option>
-                    <option value="auction">Auction</option>
-                    <option value="trademe">Trademe</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="wechat">Wechat</option>
+                    {% for platform in platformList %}
+                        <option value={{platform[0]}}>{{platform[1]}}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

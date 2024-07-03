@@ -61,7 +61,16 @@ def home():
             VALUES (%s, %s, %s, %s, %s, %s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,filename,))
             return redirect(url_for('home'))
     else:
-        return render_template("index.html")
+        connection1 = getCursor()
+        connection1.execute("""SELECT category_id,category_name FROM category;""")
+        categoryList = connection1.fetchall()
+        connection2 = getCursor()
+        connection2.execute("""SELECT status_id,status_name FROM status;""")
+        statusList = connection2.fetchall()
+        connection3 = getCursor()
+        connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
+        platformList = connection3.fetchall()
+        return render_template("index.html",categoryList=categoryList,statusList=statusList,platformList=platformList)
 
 
 
