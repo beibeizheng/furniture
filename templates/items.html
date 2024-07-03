@@ -48,9 +48,12 @@
                     <td>{{ product[9] }}</td>
                     <td>{{ product[7]-product[4]- product[9]}}</td>
                 {% endif %}
-                <td><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-                    Update
-                  </button></td> 
+                <td>
+                    <button type="button" class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        Update
+                    </button>
+                </td>
+                
             </tr>
            
             {% endfor %}
@@ -63,10 +66,10 @@
             <div class="modal-content">
                 <div class="modal-header">
                 <h1 class="modal-title fs-5" id="exampleModalLabel">Update Product Details</h1>
+              
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-               
-                    <form id="editForm" action="/update" method="post" enctype="multipart/form-data">
+                    <form action="/update" method="post" enctype="multipart/form-data">
                         <div class="modal-body">
                             <input type="hidden" id="edit_product_id" name="product_id">
                             <div class="form-group">
@@ -76,19 +79,17 @@
                             <div class="form-group">
                                 <label for="edit_product_category">Product Category</label>
                                 <select class="form-control" id="edit_product_category" name="product_category" required>
-                                    <option value="1">Bed</option>
-                                    <option value="2">Sofa</option>
-                                    <option value="3">Motor</option>
-                                    <option value="4">Furniture</option>
-                                    <option value="5">Outdoor</option>
+                                    {% for category in categoryList %}
+                                    <option value={{category[0]}}>{{category[1]}}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="edit_product_status">Product Status</label>
                                 <select class="form-control" id="edit_product_status" name="product_status" required>
-                                    <option value="1">Sold</option>
-                                    <option value="2">Selling</option>
-                                    <option value="3">Own use</option>
+                                    {% for status in statusList %}
+                                    <option value={{status[0]}}>{{status[1]}}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -102,10 +103,9 @@
                             <div class="form-group">
                                 <label for="edit_buy_platform">Buy Platform</label>
                                 <select class="form-control" id="edit_buy_platform" name="buy_platform" required>
-                                    <option value="1">Auction</option>
-                                    <option value="2">Trademe</option>
-                                    <option value="3">Facebook</option>
-                                    <option value="4">Wechat</option>
+                                    {% for platform in platformList %}
+                                        <option value="{{platform[0]}}">{{platform[1]}}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -119,10 +119,9 @@
                             <div class="form-group">
                                 <label for="edit_sell_platform">Sell Platform</label>
                                 <select class="form-control" id="edit_sell_platform" name="sell_platform">
-                                    <option value="1">Auction</option>
-                                    <option value="2">Trademe</option>
-                                    <option value="3">Facebook</option>
-                                    <option value="4">Wechat</option>
+                                    {% for platform in platformList %}
+                                        <option value="{{platform[0]}}">{{platform[1]}}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -149,9 +148,37 @@
     const myModal = document.getElementById('myModal')
     const myInput = document.getElementById('myInput')
 
-myModal.addEventListener('shown.bs.modal', () => {
-  myInput.focus()
-})  
+    myModal.addEventListener('shown.bs.modal', () => {
+    myInput.focus()
+    })  
+
+
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 监听按钮点击事件
+        var updateButtons = document.querySelectorAll('.btn-primary[data-bs-toggle="modal"]');
+        updateButtons.forEach(function(button) {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                var productId = this.getAttribute('data-product-id');
+
+                // 发送异步请求到后端
+                fetch('/get_product?productId=' + productId)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 在这里处理返回的产品数据，填充到模态框中
+                        console.log(data);
+                        // 例如，将返回的数据填充到模态框中的表单中
+                        document.getElementById('product-name').value = data.product_name;
+                        document.getElementById('product-category').value = data.category_name;
+                        // 其他字段以此类推
+                    })
+                    .catch(error => console.error('Error fetching product:', error));
+            });
+        });
+    });
+</script>
+
 
 {% endblock %}

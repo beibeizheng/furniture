@@ -8,7 +8,7 @@
 {% block content %}
     
 <div class="container">
-    <form action="/" method="post" enctype="multipart/form-data">
+    <form action="/" method="POST" enctype="multipart/form-data">
         <div class="row">
             <div class="col-25">
                 <label for="product_name">Product Name</label>
@@ -76,66 +76,50 @@
                 
                     <option value="" selected disabled>Select a opinion</option>
                     {% for platform in platformList %}
-                        <option value={{platform[0]}}>{{platform[1]}}</option>
+                        <option value="{{platform[0]}}">{{platform[1]}}</option>
                     {% endfor %}
                     
                 </select>
             </div>
         </div>
         <div id="additional-info" class="additional-info">
-        <div class="row">
-            <div class="col-25">
-                <label for="sell_date">Sell Date</label>
+            <div class="row">
+                <div class="col-25">
+                    <label for="sell_date">Sell Date</label>
+                </div>
+                <div class="col-75">
+                    <input type="date" id="sell_date" name="sell_date">
+                </div>
             </div>
-            <div class="col-75">
-                <input type="date" id="sell_date" name="sell_date">
+            <div class="row">
+                <div class="col-25">
+                    <label for="sell_price">Sell Price</label>
+                </div>
+                <div class="col-75">
+                    <input type="number" step="0.01" id="sell_price" name="sell_price" placeholder="Sell price..">
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-25">
-                <label for="sell_price">Sell Price</label>
+            <div class="row">
+                <div class="col-25">
+                    <label for="sell_platform">Sell Platform</label>
+                </div>
+                <div class="col-75">
+                    <select id="sell_platform" name="sell_platform">
+                        <option value="" selected disabled>Select an option</option>
+                        {% for platform in platformList %}
+                            <option value="{{platform[0]}}">{{platform[1]}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="col-75">
-                <input type="number" step="0.01" id="sell_price" name="sell_price" placeholder="Sell price..">
+            <div class="row">
+                <div class="col-25">
+                    <label for="fees">Fees</label>
+                </div>
+                <div class="col-75">
+                    <input type="number" step="0.01" id="fees" name="fees" placeholder="Fees..">
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-25">
-                <label for="sell_platform">Sell Platform</label>
-            </div>
-            <div class="col-75">
-                <select id="sell_platform" name="sell_platform">
-                    <option value="" selected disabled>Select a opinion</option>
-                    {% for platform in platformList %}
-                        <option value={{platform[0]}}>{{platform[1]}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-        <!-- <div class="row">
-            <div class="col-25">
-                <label for="days_held">Days Held</label>
-            </div>
-            <div class="col-75">
-                <input type="number" id="days_held" name="days_held" placeholder="Days held..">
-            </div>
-        </div> -->
-        <div class="row">
-            <div class="col-25">
-                <label for="fees">Fees</label>
-            </div>
-            <div class="col-75">
-                <input type="number" step="0.01" id="fees" name="fees" placeholder="Fees..">
-            </div>
-        </div>
-        <!-- <div class="row">
-            <div class="col-25">
-                <label for="profit">Profit ($)</label>
-            </div>
-            <div class="col-75">
-                <input type="number" step="0.01" id="profit" name="profit" placeholder="Profit..">
-            </div>
-        </div> -->
         </div>
         <br>
         <div class="row">
