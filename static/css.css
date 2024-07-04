@@ -45,7 +45,7 @@ div.content {
     box-sizing: border-box;
   }
   
-  input[type=text], select, textarea {
+  input[type=text], select, textarea ,input[type=number]{
     width: 100%;
     padding: 12px;
     border: 1px solid #ccc;
@@ -76,18 +76,12 @@ div.content {
     background-color: #f2f2f2;
     padding: 20px;
   }
-  
-  .col-25 {
-    float: left;
-    width: 25%;
-    margin-top: 6px;
+  .custom-row {
+    display: flex;
+    align-items: center;
   }
+
   
-  .col-75 {
-    float: left;
-    width: 75%;
-    margin-top: 6px;
-  }
   
   /* Clear floats after the columns */
   .row::after {
@@ -114,6 +108,10 @@ div.content {
     border-bottom: 1px solid #ddd;
   }
 
+.btn-outline-success{
+  margin-left: 5px;
+}
+
 
 @media screen and (max-width: 1400px) {
   ul.sidenav {
@@ -136,8 +134,5 @@ div.content {
     float: none;
   }
 
-  .col-25, .col-75, input[type=submit] {
-    width: 100%;
-    margin-top: 0;
-  }
+
 }

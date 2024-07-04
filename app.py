@@ -4,6 +4,7 @@ from flask import request
 from flask import redirect
 from flask import url_for
 from werkzeug.utils import secure_filename
+from datetime import date
 from flask import jsonify
 import os
 import re
@@ -81,8 +82,25 @@ def home():
 
 
 
-@app.route("/items")
+@app.route("/items", methods=["GET"])
 def items():
+    search_query = request.args.get("search_query", default="", type=str)
+    filter = request.args.get("filter")
+    today_date = date.today()
+    if filter:
+        if filter == 'today':
+            filter_query = today_date
+        elif filter == 'this_week':
+            pass
+        elif filter == 'this_month':
+            pass
+        elif filter == 'this_year':
+            pass
+        else:
+            pass
+        
+    
+    search_query_like = f"%{search_query}%"
     connection = getCursor()
     connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
             p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
@@ -90,7 +108,7 @@ def items():
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id;""")
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s;""", (search_query_like,))
     productList = connection.fetchall()
     connection1 = getCursor()
     connection1.execute("""SELECT category_id,category_name FROM category;""")

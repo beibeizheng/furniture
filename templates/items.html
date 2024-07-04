@@ -2,13 +2,39 @@
 
 {% block header %}
 
-<h2>Product History</h2>
+<h2 class="page_title">Product Details</h2>
 {% endblock %}
 
 {% block content %}
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container-fluid">
+        <div class="col">
+            <form method="GET" action="/items" class="form-inline">
+                <div class="form-group">
+                    <label for="filter" class="mr-2">Filter:</label>
+                    <select class="mr-2" id="filter" name="filter">
+                        <option value="" selected disabled>Select a time</option>
+                        <option value="today">Today</option>
+                        <option value="this_week">This Week</option>
+                        <option value="this_month">This Month</option>
+                        <option value="this_year">This Year</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">Apply Filter</button>
+            </form>
+        </div>
+      <div class="d-flex ms-auto">
+        <form class="d-flex me-2" role="search" action="/items" method="GET">
+            <input class="form-control" type="search" name="search_query" placeholder="Search Product Name..." aria-label="Search">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+          </form>
+      </div>
+    </div>
+  </nav>
+  
     
 <div class="container">
-    <h2>Product List</h2>
     <table class="items">
         <thead>
             <tr>
