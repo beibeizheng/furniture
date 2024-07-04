@@ -112,6 +112,19 @@ div.content {
   margin-left: 5px;
 }
 
+.filter_options{
+  min-width: 200px;
+}
+
+.d-flex .btn-primary{
+  margin-left: 10px;
+}
+
+.btn-primary a{
+  color: white;
+  text-decoration: none;
+}
+
 
 @media screen and (max-width: 1400px) {
   ul.sidenav {

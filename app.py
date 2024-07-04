@@ -8,7 +8,7 @@ from datetime import date
 from flask import jsonify
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import mysql.connector
 from mysql.connector import FieldType
 import connect
@@ -62,7 +62,6 @@ def home():
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             product_image = os.path.join('images', filename)
-            print('file',filename)
             connection = getCursor()
             connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id,sell_date,sell_price,sell_platform_id,fees,image_name)
             VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,sell_date,sell_price,sell_platform_id,fees,filename,))
@@ -85,30 +84,59 @@ def home():
 @app.route("/items", methods=["GET"])
 def items():
     search_query = request.args.get("search_query", default="", type=str)
-    filter = request.args.get("filter")
+    filter = request.args.get("filter","")
     today_date = date.today()
+    connection = getCursor()
     if filter:
         if filter == 'today':
-            filter_query = today_date
-        elif filter == 'this_week':
-            pass
-        elif filter == 'this_month':
-            pass
-        elif filter == 'this_year':
-            pass
-        else:
-            pass
-        
-    
-    search_query_like = f"%{search_query}%"
-    connection = getCursor()
-    connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+            connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
             p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s;""", (search_query_like,))
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date = %s;""", (today_date,))
+        elif filter == 'this_week':
+            today = datetime.today()
+            start_of_week = today - timedelta(days=today.weekday())  # Get Monday's date
+            end_of_week = start_of_week + timedelta(days=6)  # Get Sunday's date
+            connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+            p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+            FROM products p
+            LEFT JOIN category c ON p.category_id = c.category_id
+            LEFT JOIN status s ON p.status_id = s.status_id
+            LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_week,end_of_week,))
+        elif filter == 'this_month':
+            start_of_month = datetime(datetime.now().year, datetime.now().month, 1).date()
+            end_of_month = datetime(datetime.now().year, datetime.now().month + 1, 1).date() - timedelta(days=1)
+            connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+            p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+            FROM products p
+            LEFT JOIN category c ON p.category_id = c.category_id
+            LEFT JOIN status s ON p.status_id = s.status_id
+            LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_month,end_of_month,))
+        elif filter == 'this_year':
+            start_of_year = datetime(datetime.now().year, 1, 1).date()
+            end_of_year = datetime(datetime.now().year, 12, 31).date()
+            connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+            p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+            FROM products p
+            LEFT JOIN category c ON p.category_id = c.category_id
+            LEFT JOIN status s ON p.status_id = s.status_id
+            LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_year,end_of_year,))
+    else:
+        search_query_like = f"%{search_query}%"
+        connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+                p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+                FROM products p
+                LEFT JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN status s ON p.status_id = s.status_id
+                LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s;""", (search_query_like,))
+                
     productList = connection.fetchall()
     connection1 = getCursor()
     connection1.execute("""SELECT category_id,category_name FROM category;""")
@@ -120,7 +148,8 @@ def items():
     connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
     platformList = connection3.fetchall()
     active_page ="items"
-    return render_template("items.html", product_list = productList,categoryList=categoryList,statusList=statusList,platformList=platformList,active_page=active_page)
+    # print('filter',filter)
+    return render_template("items.html", product_list = productList,categoryList=categoryList,statusList=statusList,platformList=platformList,active_page=active_page,filter=filter)
 
 @app.route('/get_product', methods=['GET'])
 def get_product():
@@ -198,5 +227,13 @@ def update_item():
 
 @app.route("/report")
 def report():
-    return render_template("report.html")
+    active_page ="report"
+    connection = getCursor()
+    connection.execute("""SELECT c.category_name, p.sell_price -p.buy_price-p.fees as income FROM products p join category c on c.category_id=p.category_id
+                where p.status_id =1;""")
+    incomelist = connection.fetchall()
+    category_list = [item[0] for item in incomelist]
+    income_list = [float(item[1]) for item in incomelist] 
+    # print("incomelist",incomelist)
+    return render_template("report.html",active_page=active_page,category_list=category_list,income_list =income_list  )
 
