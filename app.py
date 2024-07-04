@@ -76,7 +76,8 @@ def home():
         connection3 = getCursor()
         connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
         platformList = connection3.fetchall()
-        return render_template("index.html",categoryList=categoryList,statusList=statusList,platformList=platformList)
+        active_page ="home"
+        return render_template("index.html",categoryList=categoryList,statusList=statusList,platformList=platformList,active_page=active_page)
 
 
 
@@ -100,18 +101,82 @@ def items():
     connection3 = getCursor()
     connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
     platformList = connection3.fetchall()
-    return render_template("items.html", product_list = productList,categoryList=categoryList,statusList=statusList,platformList=platformList)
+    active_page ="items"
+    return render_template("items.html", product_list = productList,categoryList=categoryList,statusList=statusList,platformList=platformList,active_page=active_page)
 
 @app.route('/get_product', methods=['GET'])
 def get_product():
     product_id = request.args.get('productId', type=int)
     cursor = getCursor()
-    cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
-    product_detail = cursor.fetchone()
+    cursor.execute("""SELECT * FROM products WHERE product_id = %s""", (product_id,))
+    product = cursor.fetchone()
     cursor.close()
-    print("product_detail",product_detail)
-    return render_template("items.html", product_detail = product_detail)
+    if product:
+        product_data = {
+            'id': product[0],
+            'name': product[1],
+            'category': product[2],
+            'status':product[3],
+            'buy_date':product[4],
+            'buy_price':product[5],
+            'buy_platform':product[6],
+            'sell_date':product[7],
+            'sell_price':product[8],
+            'sell_platform':product[9],
+            'fees':product[10],
+            'image_name':product[11]
+        }
+        print("product",product_data)
+        return jsonify(product_data)
+    else:
+        return jsonify({'error': 'Product not found'}), 404
+
+
+@app.route('/update_item', methods=['POST'])
+def update_item():
+    product_id = request.form['product_id']
+    product_name = request.form['product_name']
+    category_id = request.form['product_category']
+    status_id = request.form['product_status']
+    buy_date = request.form['buy_date']
+    buy_price = request.form['buy_price']
+    buy_platform_id = request.form['buy_platform']
+    file = request.files['product_image']
+    sell_date = request.form.get('sell_date') or None
+    sell_price = request.form.get('sell_price') or None
+    sell_platform_id = request.form.get('sell_platform') or None
+    fees = request.form.get('fees') or None
+
+    file = request.files['product_image']
+    existing_image_name = request.form['existing_product_image']
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        product_image = filename
+    else:
+        product_image = existing_image_name
+
+
+    # Execute the SQL query
+    connection = getCursor()
+    connection.execute("""UPDATE products SET 
+        product_name = %s,
+        category_id = %s,
+        status_id = %s,
+        buy_date = %s,
+        buy_price = %s,
+        buy_platform_id = %s,
+        sell_date = %s,
+        sell_price = %s,
+        sell_platform_id = %s,
+        fees = %s,
+        image_name =%s
+        WHERE product_id = %s;""",(product_name, category_id, status_id, buy_date, buy_price,
+        buy_platform_id, sell_date, sell_price, sell_platform_id, fees,product_image,product_id,))
     
+    return redirect(url_for('items'))
+
 
 @app.route("/report")
 def report():

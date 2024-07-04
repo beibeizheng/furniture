@@ -47,6 +47,13 @@
                     <td>{{ product[6] | days_diff(product[3]) }} days</td>
                     <td>{{ product[9] }}</td>
                     <td>{{ product[7]-product[4]- product[9]}}</td>
+                {% else %}
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
                 {% endif %}
                 <td>
                     <button type="button" class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal">
@@ -65,20 +72,20 @@
             <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Update Product Details</h1>
-              
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Update Product Details</h1>
+                
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                    <form action="/update" method="post" enctype="multipart/form-data">
+                    <form action="/update_item" method="post" enctype="multipart/form-data">
                         <div class="modal-body">
-                            <input type="hidden" id="edit_product_id" name="product_id">
+                            <input type="hidden" id="product_id" name="product_id">
                             <div class="form-group">
                                 <label for="edit_product_name">Product Name</label>
-                                <input type="text" class="form-control" id="edit_product_name" name="product_name" required>
+                                <input type="text" class="form-control" id="product_name" name="product_name" required>
                             </div>
                             <div class="form-group">
                                 <label for="edit_product_category">Product Category</label>
-                                <select class="form-control" id="edit_product_category" name="product_category" required>
+                                <select class="form-control" id="product_category" name="product_category" required>
                                     {% for category in categoryList %}
                                     <option value={{category[0]}}>{{category[1]}}</option>
                                     {% endfor %}
@@ -86,39 +93,39 @@
                             </div>
                             <div class="form-group">
                                 <label for="edit_product_status">Product Status</label>
-                                <select class="form-control" id="edit_product_status" name="product_status" required>
+                                <select class="form-control" id="product_status" name="product_status" required>
                                     {% for status in statusList %}
                                     <option value={{status[0]}}>{{status[1]}}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="edit_buy_date">Buy Date</label>
-                                <input type="date" class="form-control" id="edit_buy_date" name="buy_date" required>
+                                <label for="buy_date">Buy Date</label>
+                                <input type="date" class="form-control" id="buy_date" name="buy_date" required>
                             </div>
                             <div class="form-group">
                                 <label for="edit_buy_price">Buy Price</label>
-                                <input type="number" step="0.01" class="form-control" id="edit_buy_price" name="buy_price" required>
+                                <input type="number" step="0.01" class="form-control" id="buy_price" name="buy_price" required>
                             </div>
                             <div class="form-group">
                                 <label for="edit_buy_platform">Buy Platform</label>
-                                <select class="form-control" id="edit_buy_platform" name="buy_platform" required>
+                                <select class="form-control" id="buy_platform" name="buy_platform" required>
                                     {% for platform in platformList %}
                                         <option value="{{platform[0]}}">{{platform[1]}}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="edit_sell_date">Sell Date</label>
-                                <input type="date" class="form-control" id="edit_sell_date" name="sell_date">
+                                <label for="sell_date">Sell Date</label>
+                                <input type="date" class="form-control" id="sell_date" name="sell_date">
                             </div>
                             <div class="form-group">
                                 <label for="edit_sell_price">Sell Price</label>
-                                <input type="number" step="0.01" class="form-control" id="edit_sell_price" name="sell_price">
+                                <input type="number" step="0.01" class="form-control" id="sell_price" name="sell_price">
                             </div>
                             <div class="form-group">
                                 <label for="edit_sell_platform">Sell Platform</label>
-                                <select class="form-control" id="edit_sell_platform" name="sell_platform">
+                                <select class="form-control" id="sell_platform" name="sell_platform">
                                     {% for platform in platformList %}
                                         <option value="{{platform[0]}}">{{platform[1]}}</option>
                                     {% endfor %}
@@ -126,19 +133,23 @@
                             </div>
                             <div class="form-group">
                                 <label for="edit_fees">Fees</label>
-                                <input type="number" step="0.01" class="form-control" id="edit_fees" name="fees">
+                                <input type="number" step="0.01" class="form-control" id="fees" name="fees">
                             </div>
                             <div class="form-group">
                                 <label for="edit_product_image">Product Image</label>
-                                <input type="file" class="form-control" id="edit_product_image" name="product_image" accept=".png, .jpg, .jpeg, .gif">
+                                <input type="file" class="form-control" id="product_image" name="product_image" accept=".png, .jpg, .jpeg, .gif">
+                                <input type="hidden" id="existing_product_image" name="existing_product_image">
+                                <img id="product_image_preview" src="" alt="Product Image" style="display:none; width: 100px; height: 100px; margin-top: 10px;">
                             </div>
                         </div>
-                    </form>
-            
-                <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
-                </div>
+                    
+                        <input type="hidden" id="product_id" name="product_id" >
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        
+                        </div>
+                </form>
             </div>
             </div>
         </div>
@@ -156,23 +167,84 @@
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 监听按钮点击事件
+        // Listening to button click events
         var updateButtons = document.querySelectorAll('.btn-primary[data-bs-toggle="modal"]');
         updateButtons.forEach(function(button) {
             button.addEventListener('click', function(event) {
                 event.preventDefault();
                 var productId = this.getAttribute('data-product-id');
+                // Function to format date to YYYY-MM-DD
+                function formatDate(dateString) {
+                    const date = new Date(dateString);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
 
-                // 发送异步请求到后端
+                // Send asynchronous requests to the backend
                 fetch('/get_product?productId=' + productId)
                     .then(response => response.json())
                     .then(data => {
-                        // 在这里处理返回的产品数据，填充到模态框中
-                        console.log(data);
-                        // 例如，将返回的数据填充到模态框中的表单中
-                        document.getElementById('product-name').value = data.product_name;
-                        document.getElementById('product-category').value = data.category_name;
-                        // 其他字段以此类推
+                        // Populate the form in the modal box with the returned data
+                        console.log(data)
+                        document.getElementById('product_id').value = data.id;
+                        document.getElementById('product_name').value = data.name;
+                        document.getElementById('product_category').value = data.category;
+                        document.getElementById('product_status').value = data.status;
+                        document.getElementById('buy_date').value = formatDate(data.buy_date);
+                        document.getElementById('buy_price').value = data.buy_price;
+                        document.getElementById('buy_platform').value = data.buy_platform;
+                        document.getElementById('sell_date').value = formatDate(data.sell_date);
+                        document.getElementById('sell_price').value = data.sell_price;
+                        document.getElementById('sell_platform').value = data.sell_platform;
+                        document.getElementById('fees').value = data.fees;
+                        document.getElementById('existing_product_image').value = data.image_name;
+                        if (data.image_name) {
+                        const imagePath = '/static/images/' + data.image_name;
+                        const imgPreview = document.getElementById('product_image_preview');
+                        imgPreview.src = imagePath;
+                        imgPreview.style.display = 'block';
+                    }
+                        
+
+                         // Set the selected status of product_status
+                        var statusSelect = document.getElementById('product_status');
+                        for (var i = 0; i < statusSelect.options.length; i++) {
+                            if (statusSelect.options[i].value == data.status) {
+                                statusSelect.options[i].selected = true;
+                                break;
+                            }
+                        }
+
+                        // set the selected of product_category
+                        var categorySelect = document.getElementById('product_category');
+                        for (var i = 0; i < categorySelect.options.length; i++) {
+                            if (categorySelect.options[i].value == data.category) {
+                                categorySelect.options[i].selected = true;
+                                break;
+                            }
+                        }
+                        //  set the selected of product_buy_platform 
+                        var bPlatformSelect = document.getElementById('buy_platform');
+                        for (var i = 0; i < bPlatformSelect.options.length; i++) {
+                            if (bPlatformSelect.options[i].value == data.buy_platform) {
+                                bPlatformSelect.options[i].selected = true;
+                                break;
+                            }
+                        }
+
+                        //  set the selected of product_sell_platform
+                        var sPlatformSelect = document.getElementById('sell_platform');
+                        for (var i = 0; i < sPlatformSelect.options.length; i++) {
+                            if (sPlatformSelect.options[i].value == data.sell_platform) {
+                                sPlatformSelect.options[i].selected = true;
+                                break;
+                            }
+                        }
+                    
+                        
+
                     })
                     .catch(error => console.error('Error fetching product:', error));
             });

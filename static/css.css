@@ -36,6 +36,11 @@ div.content {
 
 
 /* home page form */
+
+.page_title {
+ text-align: center;
+ padding:20px 0;
+}
 * {
     box-sizing: border-box;
   }

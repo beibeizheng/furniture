@@ -1,6 +1,6 @@
 <ul class="sidenav">
-  <li><a class="active" href="/">Home</a></li>
-  <li><a href="/items">Items</a></li>
-  <li><a href="/report">Report</a></li>
-  <li><a href="/manage">Management</a></li>
+  <li><a href="/" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+  <li><a href="/items" class="{% if active_page == 'items' %}active{% endif %}">Items</a></li>
+  <li><a href="/report" class="{% if active_page == 'report' %}active{% endif %}">Report</a></li>
+  <li><a href="/manage" class="{% if active_page == 'management' %}active{% endif %}">Management</a></li>
 </ul>
