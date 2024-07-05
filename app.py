@@ -6,6 +6,7 @@ from flask import url_for
 from werkzeug.utils import secure_filename
 from datetime import date
 from flask import jsonify
+import calendar
 import os
 import re
 from datetime import datetime, timedelta
@@ -225,15 +226,60 @@ def update_item():
     return redirect(url_for('items'))
 
 
-@app.route("/report")
+@app.route("/report", methods=['GET'])
 def report():
     active_page ="report"
-    connection = getCursor()
-    connection.execute("""SELECT c.category_name, p.sell_price -p.buy_price-p.fees as income FROM products p join category c on c.category_id=p.category_id
-                where p.status_id =1;""")
-    incomelist = connection.fetchall()
-    category_list = [item[0] for item in incomelist]
-    income_list = [float(item[1]) for item in incomelist] 
-    # print("incomelist",incomelist)
-    return render_template("report.html",active_page=active_page,category_list=category_list,income_list =income_list  )
+    range_value = request.args.get("range", default="", type=str)
+    if range_value=='year':
+        connection3 = getCursor()
+        connection3.execute("""SELECT MONTH(sell_date) AS Month,
+       SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
+           ELSE 0 END) AS total_revenue
+        FROM products WHERE sell_date IS NOT NULL AND YEAR(sell_date) = YEAR(CURDATE())
+        GROUP BY MONTH(sell_date)
+        ORDER BY Month;""")
+        monthlylist = connection3.fetchall()
+        month_list = [calendar.month_name[row[0]] for row in monthlylist]
+        mIncome_list = [float(item[1]) for item in monthlylist] 
+
+        return render_template("report.html",range_value=range_value,active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist )
+    elif range_value=='month':
+        pass
+    elif range_value=='week':
+        pass
+    else:
+        connection1 = getCursor()
+        connection1.execute("""SELECT c.category_name, sum(p.sell_price -p.buy_price-p.fees) as income FROM products p join category c on c.category_id=p.category_id
+                    where p.status_id =1
+                    group by c.category_name
+                    order by income desc;""")
+        incomelist = connection1.fetchall()
+        category_list = [item[0] for item in incomelist]
+        income_list = [float(item[1]) for item in incomelist] 
+        # print("incomelist",incomelist)
+        connection2 = getCursor()
+        connection2.execute("""SELECT YEAR(sell_date) AS year,
+        SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
+            ELSE 0 END) AS total_revenue FROM products
+        WHERE  sell_date IS NOT NULL
+        GROUP BY YEAR(sell_date)
+        ORDER BY year;""")
+        yearlylist = connection2.fetchall()
+        year_list = [item[0] for item in yearlylist]
+        yIncome_list = [float(item[1]) for item in yearlylist] 
+        total_income = sum(yIncome_list)
+
+        connection4 = getCursor()
+        connection4.execute("""SELECT 
+            (SELECT SUM(buy_price) FROM products WHERE status_id = (SELECT status_id FROM status WHERE status_name = 'selling')) AS total_buy_price_selling,
+            SUM(buy_price) AS total_buy_price_all
+            FROM products;""")
+        paylist = connection4.fetchall()
+
+        return render_template("report.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist)
+    # print('range_value ',range_value )
+   
+
+
+    
 
