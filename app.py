@@ -139,18 +139,10 @@ def items():
                 LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s;""", (search_query_like,))
                 
     productList = connection.fetchall()
-    connection1 = getCursor()
-    connection1.execute("""SELECT category_id,category_name FROM category;""")
-    categoryList = connection1.fetchall()
-    connection2 = getCursor()
-    connection2.execute("""SELECT status_id,status_name FROM status;""")
-    statusList = connection2.fetchall()
-    connection3 = getCursor()
-    connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
-    platformList = connection3.fetchall()
+    
     active_page ="items"
     # print('filter',filter)
-    return render_template("items.html", product_list = productList,categoryList=categoryList,statusList=statusList,platformList=platformList,active_page=active_page,filter=filter)
+    return render_template("items.html", product_list = productList,active_page=active_page,filter=filter)
 
 @app.route('/get_product', methods=['GET'])
 def get_product():
@@ -223,7 +215,7 @@ def update_item():
         WHERE product_id = %s;""",(product_name, category_id, status_id, buy_date, buy_price,
         buy_platform_id, sell_date, sell_price, sell_platform_id, fees,product_image,product_id,))
     
-    return redirect(url_for('items'))
+    return redirect(url_for('product', productId=product_id))
 
 
 @app.route("/report", methods=['GET'])
@@ -281,5 +273,26 @@ def report():
    
 
 
-    
-
+@app.route("/product", methods=['GET'])
+def product():
+    product_id = request.args.get("productId")
+    connection = getCursor()
+    connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+                p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+                FROM products p
+                LEFT JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN status s ON p.status_id = s.status_id
+                LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_id= %s;""", (product_id,))
+    productList = connection.fetchall()
+    # print('productList',productList)
+    connection1 = getCursor()
+    connection1.execute("""SELECT category_id,category_name FROM category;""")
+    categoryList = connection1.fetchall()
+    connection2 = getCursor()
+    connection2.execute("""SELECT status_id,status_name FROM status;""")
+    statusList = connection2.fetchall()
+    connection3 = getCursor()
+    connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
+    platformList = connection3.fetchall()
+    return render_template("product.html",productList=productList,categoryList=categoryList,statusList=statusList,platformList=platformList)
