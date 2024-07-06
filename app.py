@@ -98,7 +98,7 @@ def items():
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date = %s;""", (today_date,))
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date = %s ORDER BY p.buy_date DESC;""", (today_date,))
         elif filter == 'this_week':
             today = datetime.today()
             start_of_week = today - timedelta(days=today.weekday())  # Get Monday's date
@@ -109,7 +109,7 @@ def items():
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_week,end_of_week,))
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_week,end_of_week,))
         elif filter == 'this_month':
             start_of_month = datetime(datetime.now().year, datetime.now().month, 1).date()
             end_of_month = datetime(datetime.now().year, datetime.now().month + 1, 1).date() - timedelta(days=1)
@@ -119,7 +119,7 @@ def items():
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_month,end_of_month,))
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_month,end_of_month,))
         elif filter == 'this_year':
             start_of_year = datetime(datetime.now().year, 1, 1).date()
             end_of_year = datetime(datetime.now().year, 12, 31).date()
@@ -129,7 +129,7 @@ def items():
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
             LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s;""", (start_of_year,end_of_year,))
+            LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_year,end_of_year,))
     else:
         search_query_like = f"%{search_query}%"
         connection.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
@@ -138,9 +138,12 @@ def items():
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status s ON p.status_id = s.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s;""", (search_query_like,))
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_name LIKE %s ORDER BY p.buy_date DESC;""", (search_query_like,))
                 
     productList = connection.fetchall()
+    if not productList:
+        flash('No data available!', 'error')
+
     
     active_page ="items"
     # print('filter',filter)
@@ -238,7 +241,7 @@ def report():
         month_list = [calendar.month_name[row[0]] for row in monthlylist]
         mIncome_list = [float(item[1]) for item in monthlylist] 
 
-        return render_template("report.html",range_value=range_value,active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist )
+        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist )
     elif range_value=='month':
         connection3 = getCursor()
         connection3.execute("""SELECT DAY(sell_date) AS Day,
@@ -252,7 +255,7 @@ def report():
         day_list = [row[0] for row in daylist]
         dIncome_list = [float(item[1]) for item in daylist]
         total_income = sum(dIncome_list)
-        return render_template("report.html",range_value=range_value,active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income )
+        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income )
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT c.category_name, sum(p.sell_price -p.buy_price-p.fees) as income FROM products p join category c on c.category_id=p.category_id
@@ -282,7 +285,19 @@ def report():
             FROM products;""")
         paylist = connection4.fetchall()
 
-        return render_template("report.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist)
+        connection5 = getCursor()
+        connection5.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+                p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+                FROM products p
+                LEFT JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN status s ON p.status_id = s.status_id
+                LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE s.status_name = 'Sold' ORDER BY p.sell_date DESC;""")
+                
+        productList = connection5.fetchall()
+        # print('productListhh',productList)
+
+        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList)
     # print('range_value ',range_value )
    
 

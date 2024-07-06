@@ -137,6 +137,23 @@ div.content {
   max-width: 600px;
 }
 
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+.table-container .table-container.items {
+  width: 100%;
+  min-width: 1000px; 
+}
+.table-container th, td {
+  padding: 8px;
+  text-align: left;
+}
+.table-container img {
+  width: 100px;
+  height: 100px;
+}
+
 @media screen and (max-width: 1400px) {
   ul.sidenav {
     width: 100%;
@@ -158,5 +175,7 @@ div.content {
     float: none;
   }
 
-
+  .items {
+    min-width: 800px; 
+}
 }
