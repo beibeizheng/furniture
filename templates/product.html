@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+
 {% block header %}
 
 <h2 class="page_title">Product Details</h2>
@@ -29,15 +30,70 @@
             {% endif %}
         </ul>
         <div class="card-body">
-            <a href="#" class="btn btn-primary">Mark As Sold</a>
+            {% if product[2]!="Sold"%}
+            <a class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#example1Modal" class="btn btn-primary">Mark As Sold</a>
+            {% endif %}
             <!-- <a href="#" class="card-link">Another link</a> -->
             <a class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Update All</a>
+            <a href="/delete?productId={{product[11]}}" class="btn btn-warning">Delete</a>
         </div>
     </div>
 
 
 {% endfor%}
 </div>
+<!-- Modal -->
+<div class="modal fade" id="example1Modal" tabindex="-1" aria-labelledby="example1ModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" id="example1ModalLabel">Update Product Details</h1>
+        
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+            <form action="/markSold" method="post">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="sellDate">Sell Date</label>
+                        <input type="date" class="form-control" id="sellDate" name="sellDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="sellPrice">Sell Price</label>
+                        <input type="number" step="0.01" class="form-control" id="sellPrice" name="sellPrice">
+                    </div>
+                    <div class="form-group">
+                        <label for="sellPlatform">Sell Platform</label>
+                        <select class="form-control" id="sellPlatform" name="sellPlatform">
+                            {% for platform in platformList %}
+                                <option value="{{platform[0]}}" {% if platform[0] == 3 %}selected{% endif %}>{{platform[1]}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fee">Fees</label>
+                        <input type="number" step="0.01" class="form-control" id="fee" name="fee">
+                    </div>
+                </div>
+            
+                <input type="hidden" id="product_id" name="product_id">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                
+                </div>
+        </form>
+    </div>
+    </div>
+</div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('sellDate').value = today;
+    });
+</script>
+
 
       <!-- Modal -->
       <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -50,7 +106,6 @@
             </div>
                 <form action="/update_item" method="post" enctype="multipart/form-data">
                     <div class="modal-body">
-                        <input type="hidden" id="product_id" name="product_id">
                         <div class="form-group">
                             <label for="edit_product_name">Product Name</label>
                             <input type="text" class="form-control" id="product_name" name="product_name" required>
@@ -115,7 +170,7 @@
                         </div>
                     </div>
                 
-                    <input type="hidden" id="product_id" name="product_id" >
+                    <input type="hidden" id="product_id" name="product_id" value="{{product_id}}">
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary">Save changes</button>
@@ -159,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     // Populate the form in the modal box with the returned data
-                    console.log(data)
+                    // console.log(data)
                     document.getElementById('product_id').value = data.id;
                     document.getElementById('product_name').value = data.name;
                     document.getElementById('product_category').value = data.category;

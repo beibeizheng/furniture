@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask,flash
 from flask import render_template
 from flask import request
 from flask import redirect
@@ -18,6 +18,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 app.config['UPLOAD_FOLDER'] = 'static/images'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Defining custom filters
 def days_diff(end_date, start_date):
@@ -66,6 +67,7 @@ def home():
             connection = getCursor()
             connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id,sell_date,sell_price,sell_platform_id,fees,image_name)
             VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,sell_date,sell_price,sell_platform_id,fees,filename,))
+            flash('A new product was successfully added!', 'success')
             return redirect(url_for('home'))
     else:
         connection1 = getCursor()
@@ -185,7 +187,7 @@ def update_item():
     sell_date = request.form.get('sell_date') or None
     sell_price = request.form.get('sell_price') or None
     sell_platform_id = request.form.get('sell_platform') or None
-    fees = request.form.get('fees') or None
+    fees = request.form.get('fees') or 0
 
     file = request.files['product_image']
     existing_image_name = request.form['existing_product_image']
@@ -214,7 +216,9 @@ def update_item():
         image_name =%s
         WHERE product_id = %s;""",(product_name, category_id, status_id, buy_date, buy_price,
         buy_platform_id, sell_date, sell_price, sell_platform_id, fees,product_image,product_id,))
-    
+
+    flash('The product was successfully updated!', 'success')
+    print("www",product_id)
     return redirect(url_for('product', productId=product_id))
 
 
@@ -236,9 +240,19 @@ def report():
 
         return render_template("report.html",range_value=range_value,active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist )
     elif range_value=='month':
-        pass
-    elif range_value=='week':
-        pass
+        connection3 = getCursor()
+        connection3.execute("""SELECT DAY(sell_date) AS Day,
+           SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
+                    ELSE 0 END) AS daily_revenue
+            FROM products 
+            WHERE sell_date IS NOT NULL AND MONTH(sell_date) = MONTH(CURDATE()) AND YEAR(sell_date) = YEAR(CURDATE())
+            GROUP BY DAY(sell_date)
+            ORDER BY Day;""")
+        daylist = connection3.fetchall()
+        day_list = [row[0] for row in daylist]
+        dIncome_list = [float(item[1]) for item in daylist]
+        total_income = sum(dIncome_list)
+        return render_template("report.html",range_value=range_value,active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income )
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT c.category_name, sum(p.sell_price -p.buy_price-p.fees) as income FROM products p join category c on c.category_id=p.category_id
@@ -295,4 +309,40 @@ def product():
     connection3 = getCursor()
     connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
     platformList = connection3.fetchall()
-    return render_template("product.html",productList=productList,categoryList=categoryList,statusList=statusList,platformList=platformList)
+    return render_template("product.html",productList=productList,categoryList=categoryList,statusList=statusList,platformList=platformList,product_id=product_id)
+
+
+
+@app.route("/markSold", methods=['POST'])
+def markSold():
+    product_id = request.form['product_id']
+    sell_date = request.form.get('sellDate') or None
+    sell_price = request.form.get('sellPrice') or None
+    sell_platform_id = request.form.get('sellPlatform') or None
+    fees = request.form.get('fee') or None
+    # Execute the SQL query
+    connection = getCursor()
+    connection.execute("""
+        UPDATE products SET
+            status_id = (SELECT status_id FROM status WHERE status_name = 'Sold'),
+            sell_date = %s,
+            sell_price = %s,
+            sell_platform_id = %s,
+            fees = %s
+        WHERE product_id = %s;
+        """, (sell_date, sell_price, sell_platform_id, fees, product_id))
+    
+    flash('The product was successfully updated!', 'success')
+    return redirect(url_for('product', productId=product_id))
+
+
+@app.route("/delete", methods=['GET'])
+def delete():
+    product_id = request.args.get("productId")
+    connection = getCursor()
+    connection.execute("""
+        DELETE FROM products 
+        WHERE product_id = %s;
+        """, (product_id,))
+    flash('The product was successfully deleted!', 'success')
+    return redirect(url_for('items'))

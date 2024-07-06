@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+
+
 {% block header %}
 
 <h2 class="page_title">Add A New Product</h2>
@@ -23,9 +25,8 @@
             </div>
             <div class="col-md-9">
                 <select id="product_category" name="product_category">
-                    <option value="" selected disabled>Select a opinion</option>
                     {% for category in categoryList %}
-                    <option value={{category[0]}}>{{category[1]}}</option>
+                    <option value={{category[0]}} {% if category[0] == 1 %}selected{% endif %}>{{category[1]}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -36,9 +37,8 @@
             </div>
             <div class="col-md-9">
                 <select id="product_status" name="product_status" onchange="showAdditionalInfo()" required>
-                    <option value="" selected disabled>Select a opinion</option>
                     {% for status in statusList %}
-                        <option value={{status[0]}}>{{status[1]}}</option>
+                        <option value={{status[0]}} {% if status[0] == 2 %}selected{% endif %}>{{status[1]}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -68,7 +68,7 @@
                 
                     <option value="" selected disabled>Select a opinion</option>
                     {% for platform in platformList %}
-                        <option value="{{platform[0]}}">{{platform[1]}}</option>
+                        <option value="{{platform[0]}}"{% if platform[0] == 3 %}selected{% endif %}>{{platform[1]}}</option>
                     {% endfor %}
                     
                 </select>
@@ -99,7 +99,7 @@
                     <select id="sell_platform" name="sell_platform">
                         <option value="" selected disabled>Select an option</option>
                         {% for platform in platformList %}
-                            <option value="{{platform[0]}}">{{platform[1]}}</option>
+                            <option value="{{platform[0]}}" {% if platform[0] == 3 %}selected{% endif %}>{{platform[1]}}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -139,6 +139,12 @@
             additionalInfo.style.display = "none";
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('buy_date').value = today;
+        document.getElementById('sell_date').value = today;
+    });
 </script>
 
 {% endblock %}
