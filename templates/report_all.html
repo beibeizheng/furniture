@@ -16,7 +16,13 @@
 
 
     
-<div >
+<div class="report">
+    {% for pay in paylist %}
+    <ul class="list-inline text-center">
+        <li class="list-inline-item h3">Currect Stock:<mark>${{pay[0]}}</mark></li>
+        <li class="list-inline-item h3">Total Expenditure:<mark>${{pay[1]}}</mark></li>
+      </ul>
+    {% endfor%}
     <h3 class="page_title">Yearly Income</h2>
     <div class="row">
         <div class="col-lg-6 col-md-12">
@@ -53,7 +59,7 @@
     <h3 class="page_title">Category Income</h2>
     <div class="row">
     <div class="col-lg-6 col-md-12">
-    <table class="table table-striped table-hover">
+    <table class="table table-striped table-hover table-bordered">
         <thead>
           <tr>
             <th scope="col">#</th>
@@ -65,7 +71,7 @@
             {% for incomeItem in incomelist %}
           <tr>
             <th scope="row">{{ loop.index }}</th>
-            <td>{{incomeItem[0]}}<td>
+            <td>{{incomeItem[0]}}</td>
             <td>{{incomeItem[1]}}</td>
           </tr>
           {% endfor %}
@@ -78,30 +84,6 @@
     </div>
 </div>
 
-<div>
-    <h3 class="page_title">Current Stock</h2>
-    <div class="row">
-    <div class="col-lg-6 col-md-12">
-    <table class="table table-striped table-hover">
-        <tbody>
-            {% for pay in paylist %}
-          <tr>
-            <th scope="col">Currect Stock</th>
-            <td>{{pay[0]}}</td>
-        </tr>
-            <tr>
-            <th scope="col">Total Expenditure</th>
-            <td>{{pay[1]}}</td>
-          </tr>
-        </tbody>
-          {% endfor %}
-      </table>
-    </div>
-    <div class="col-lg-6 col-md-12">
-      <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
-    </div>
-    </div>
-</div>
 <script>
     const aValues = {{ year_list |tojson }};
     const bValues = {{ yIncome_list |tojson }};
@@ -155,8 +137,34 @@
    
     </script> 
 
+<div >
+    <h3 class="page_title">Top 10 Income Product</h2>
+    <div class="row">
+    <div >
+        <table class="table table-striped table-hover table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Product Name</th>
+                <th scope="col">Income($)</th>
+              </tr>
+            </thead>
+            <tbody>
+                {% for item in pIncomelist %}
+              <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{item[0]}}</td>
+                <td>{{item[1]}}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+    </div>
+    </div>
+</div>
+
 <div>
-<h3 class="page_title">Product details</h2>
+<h3 class="page_title">Product Details</h2>
     <div class="table-container">
         <table class="items">
             <thead>
@@ -184,9 +192,9 @@
                     <td>{{ product[7] }}</td>
                     <td>{{ product[7] - product[4] - product[9] }}</td>
                     <td>
-                        <button type="button" class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        <a class="btn btn-primary" href="/product?productId={{product[11]}}">
                             Details
-                        </button>
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}

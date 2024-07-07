@@ -229,6 +229,7 @@ def update_item():
 def report():
     active_page ="report"
     range_value = request.args.get("range", default="", type=str)
+    
     if range_value=='year':
         connection3 = getCursor()
         connection3.execute("""SELECT MONTH(sell_date) AS Month,
@@ -241,7 +242,19 @@ def report():
         month_list = [calendar.month_name[row[0]] for row in monthlylist]
         mIncome_list = [float(item[1]) for item in monthlylist] 
 
-        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist )
+        connection4 = getCursor()
+        connection4.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+                p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+                FROM products p
+                LEFT JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN status s ON p.status_id = s.status_id
+                LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE s.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE())
+                ORDER BY p.sell_date DESC;""")
+                
+        productList = connection4.fetchall()
+
+        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist,product_list=productList )
     elif range_value=='month':
         connection3 = getCursor()
         connection3.execute("""SELECT DAY(sell_date) AS Day,
@@ -255,7 +268,20 @@ def report():
         day_list = [row[0] for row in daylist]
         dIncome_list = [float(item[1]) for item in daylist]
         total_income = sum(dIncome_list)
-        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income )
+
+        connection4 = getCursor()
+        connection4.execute("""SELECT p.product_name,c.category_name,s.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
+                p.sell_date,p.sell_price,spf.platform_name AS sell_platform_name,p.fees,image_name,p.product_id
+                FROM products p
+                LEFT JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN status s ON p.status_id = s.status_id
+                LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
+                LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE s.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE()) AND MONTH(sell_date) = MONTH(CURDATE())
+                ORDER BY p.sell_date DESC;""")
+                
+        productList = connection4.fetchall()
+
+        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income,product_list=productList )
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT c.category_name, sum(p.sell_price -p.buy_price-p.fees) as income FROM products p join category c on c.category_id=p.category_id
@@ -296,8 +322,15 @@ def report():
                 
         productList = connection5.fetchall()
         # print('productListhh',productList)
+        connection6 = getCursor()
+        connection6.execute("""SELECT product_name, sell_price - buy_price - fees AS income
+                FROM products 
+                WHERE status_id = (SELECT status_id FROM status WHERE status_name = 'Sold')
+                ORDER BY income DESC
+                LIMIT 10;""")
+        pIncomelist = connection6.fetchall()
 
-        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList)
+        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList,pIncomelist=pIncomelist)
     # print('range_value ',range_value )
    
 

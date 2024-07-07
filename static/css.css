@@ -154,6 +154,17 @@ div.content {
   height: 100px;
 }
 
+.report .list-inline{
+  padding: 25px 0;
+}
+
+.report .list-inline mark{
+  color: red;
+}
+
+
+
+
 @media screen and (max-width: 1400px) {
   ul.sidenav {
     width: 100%;
