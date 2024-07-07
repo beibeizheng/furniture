@@ -66,45 +66,61 @@
     });
 </script>
 
-<div>
-    <h3 class="page_title">Product Details</h2>
-        <div class="table-container">
-            <table class="items">
-                <thead>
-                    <tr>
-                        <th>Photo</th>
-                        <th>Product Name</th>
-                        <th>Buy Date</th>
-                        <th>Buy Price</th>
-                        <th>Sell Date</th>
-                        <th>Sell Price</th>
-                        <th>Earnings($)</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for product in product_list %}
-                    <tr>
-                        <td>
-                            <img src="{{ url_for('static', filename='images/' + product[10]) }}" alt="{{ product[10] }}">
-                        </td>
-                        <td>{{ product[0] }}</td>
-                        <td>{{ product[3] }}</td>
-                        <td>{{ product[4] }}</td>
-                        <td>{{ product[6] }}</td>
-                        <td>{{ product[7] }}</td>
-                        <td>{{ product[7] - product[4] - product[9] }}</td>
-                        <td>
-                            <a class="btn btn-primary" href="/product?productId={{product[11]}}">
-                                Details
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    
+<div >
+    <h3 class="page_title">Product Details</h3>
+    <div class="table-container">
+        <table id="productTable" class="table table-striped" >
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Product Name</th>
+                    <th>Buy Date</th>
+                    <th>Buy Price</th>
+                    <th>Sell Date</th>
+                    <th>Sell Price</th>
+                    <th>Earnings($)</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in product_list %}
+                <tr>
+                    <td>
+                        <img src="{{ url_for('static', filename='images/' + product[10]) }}" alt="{{ product[10] }}">
+                    </td>
+                    <td>{{ product[0] }}</td>
+                    <td>{{ product[3] }}</td>
+                    <td>{{ product[4] }}</td>
+                    <td>{{ product[6] }}</td>
+                    <td>{{ product[7] }}</td>
+                    <td>{{ product[7] - product[4] - product[9] }}</td>
+                    <td>
+                        <a class="btn btn-primary" href="/product?productId={{ product[11] }}">
+                            Details
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
+     <!-- 引入 jQuery 和 Bootstrap JS -->
+     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+     <!-- 引入 DataTables 和 DataTables Bootstrap JS -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.js"></script>
+     <script>
+         $(document).ready(function() {
+             $('#productTable').DataTable({
+                 "order": [[4, "desc"]],
+                 "columnDefs": [
+                     { "orderable": true, "targets": [4, 6] }
+                 ]
+             });
+         });
+     </script>
 
 {% endblock %}

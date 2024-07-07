@@ -4,6 +4,8 @@ from flask import request
 from flask import redirect
 from flask import url_for
 from werkzeug.utils import secure_filename
+from PIL import Image, UnidentifiedImageError
+import pyheif
 from datetime import date
 from flask import jsonify
 import calendar
@@ -17,8 +19,11 @@ import connect
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 app.config['UPLOAD_FOLDER'] = 'static/images'
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif','heic'}
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
+
+
 
 # Defining custom filters
 def days_diff(end_date, start_date):
@@ -28,6 +33,8 @@ def days_diff(end_date, start_date):
 
 # Register a custom filter
 app.jinja_env.filters['days_diff'] = days_diff
+
+
 
 dbconn = None
 connection = None
@@ -44,30 +51,94 @@ def getCursor():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-@app.route("/",methods=["GET", "POST"])
+def convert_heic_to_jpeg(heic_path):
+    try:
+        heif_file = pyheif.read(heic_path)
+        image = Image.frombytes(
+            heif_file.mode, 
+            heif_file.size, 
+            heif_file.data,
+            "raw",
+            heif_file.mode,
+            heif_file.stride,
+        )
+        jpeg_path = heic_path.rsplit('.', 1)[0] + '.jpeg'
+        image.save(jpeg_path, "JPEG")
+        return jpeg_path
+    except Exception as e:
+        print(f"Error converting HEIC to JPEG: {e}")
+        raise
+
+def resize_image(image_path):
+    try:
+        img = Image.open(image_path)
+        img_format = img.format
+        img.save(image_path, format=img_format, optimize=True, quality=85)
+        file_size = os.path.getsize(image_path)
+        while file_size > 50 * 1024:
+            img = img.resize((int(img.size[0] * 0.9), int(img.size[1] * 0.9)), Image.ANTIALIAS)
+            img.save(image_path, format=img_format, optimize=True, quality=85)
+            file_size = os.path.getsize(image_path)
+    except UnidentifiedImageError:
+        os.remove(image_path)
+        raise
+    except Exception as e:
+        print(f"Error resizing image: {e}")
+        raise
+
+@app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
-      
-        product_name = request.form['product_name']
-        category_id = request.form['product_category']
-        status_id = request.form['product_status']
-        buy_date = request.form['buy_date']
-        buy_price = request.form['buy_price']
-        buy_platform_id = request.form['buy_platform']
-        file = request.files['product_image']
-        sell_date = request.form.get('sell_date') or None
-        sell_price = request.form.get('sell_price') or None
-        sell_platform_id = request.form.get('sell_platform') or None
-        fees = request.form.get('fees') or None
+        try:
+            product_name = request.form['product_name']
+            category_id = request.form['product_category']
+            status_id = request.form['product_status']
+            buy_date = request.form['buy_date']
+            buy_price = request.form['buy_price']
+            buy_platform_id = request.form['buy_platform']
+            file = request.files['product_image']
+            sell_date = request.form.get('sell_date') or None
+            sell_price = request.form.get('sell_price') or None
+            sell_platform_id = request.form.get('sell_platform') or None
+            fees = request.form.get('fees') or None
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            product_image = os.path.join('images', filename)
-            connection = getCursor()
-            connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id,sell_date,sell_price,sell_platform_id,fees,image_name)
-            VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s,%s,%s);""",(product_name,category_id,status_id,buy_date,buy_price,buy_platform_id,sell_date,sell_price,sell_platform_id,fees,filename,))
-            flash('A new product was successfully added!', 'success')
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+
+                # Convert HEIC to JPEG if necessary
+                if filename.lower().endswith('.heic'):
+                    try:
+                        file_path = convert_heic_to_jpeg(file_path)
+                        filename = os.path.basename(file_path)
+                    except Exception as e:
+                        os.remove(file_path)
+                        flash('The uploaded HEIC file could not be converted.', 'danger')
+                        return redirect(url_for('home'))
+                try:
+                    resize_image(file_path)
+                    file_size = os.path.getsize(file_path)
+                    if file_size > 50 * 1024:
+                        os.remove(file_path)
+                        flash('The uploaded image could not be resized to fit within the 50KB limit.', 'danger')
+                        return redirect(url_for('home'))
+
+                    product_image = os.path.join('images', filename)
+                    connection = getCursor()
+                    connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, sell_date, sell_price, sell_platform_id, fees, image_name)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+                                    (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, sell_date, sell_price, sell_platform_id, fees, filename))
+                    flash('A new product was successfully added!', 'success')
+                    return redirect(url_for('home'))
+                except UnidentifiedImageError:
+                    flash('The uploaded file is not a valid image. Please upload a valid image file.', 'danger')
+                    return redirect(url_for('home'))
+            else:
+                    flash('Invalid file format or no file uploaded.', 'danger')
+                    return redirect(url_for('home'))
+        except Exception as e:
+            flash(f'An error occurred: {e}', 'danger')
             return redirect(url_for('home'))
     else:
         connection1 = getCursor()
