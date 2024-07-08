@@ -1,11 +1,13 @@
-from flask import Flask,flash
+from flask import Flask,flash, jsonify
 from flask import render_template
 from flask import request
 from flask import redirect
 from flask import url_for
 from werkzeug.utils import secure_filename
 from PIL import Image, UnidentifiedImageError
-import pyheif
+from pillow_heif import register_heif_opener
+
+
 from datetime import date
 from flask import jsonify
 import calendar
@@ -48,26 +50,12 @@ def getCursor():
     dbconn = connection.cursor()
     return dbconn
 
+register_heif_opener()
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def convert_heic_to_jpeg(heic_path):
-    try:
-        heif_file = pyheif.read(heic_path)
-        image = Image.frombytes(
-            heif_file.mode, 
-            heif_file.size, 
-            heif_file.data,
-            "raw",
-            heif_file.mode,
-            heif_file.stride,
-        )
-        jpeg_path = heic_path.rsplit('.', 1)[0] + '.jpeg'
-        image.save(jpeg_path, "JPEG")
-        return jpeg_path
-    except Exception as e:
-        print(f"Error converting HEIC to JPEG: {e}")
-        raise
+register_heif_opener()
 
 def resize_image(image_path):
     try:
@@ -76,7 +64,7 @@ def resize_image(image_path):
         img.save(image_path, format=img_format, optimize=True, quality=85)
         file_size = os.path.getsize(image_path)
         while file_size > 50 * 1024:
-            img = img.resize((int(img.size[0] * 0.9), int(img.size[1] * 0.9)), Image.ANTIALIAS)
+            img = img.resize((int(img.size[0] * 0.9), int(img.size[1] * 0.9)), Image.LANCZOS)
             img.save(image_path, format=img_format, optimize=True, quality=85)
             file_size = os.path.getsize(image_path)
     except UnidentifiedImageError:
@@ -110,7 +98,11 @@ def home():
                 # Convert HEIC to JPEG if necessary
                 if filename.lower().endswith('.heic'):
                     try:
-                        file_path = convert_heic_to_jpeg(file_path)
+                        img = Image.open(file_path)
+                        jpeg_path = file_path.rsplit('.', 1)[0] + '.jpeg'
+                        img.save(jpeg_path, "JPEG")
+                        os.remove(file_path)  # Remove the original HEIC file
+                        file_path = jpeg_path
                         filename = os.path.basename(file_path)
                     except Exception as e:
                         os.remove(file_path)
@@ -404,6 +396,20 @@ def report():
         return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList,pIncomelist=pIncomelist)
     # print('range_value ',range_value )
    
+def get_lists():
+    connection = getCursor()
+    
+    connection.execute("""SELECT category_id, category_name FROM category;""")
+    categoryList = connection.fetchall()
+    
+    connection.execute("""SELECT status_id, status_name FROM status;""")
+    statusList = connection.fetchall()
+    
+    connection.execute("""SELECT platform_id, platform_name FROM platform;""")
+    platformList = connection.fetchall()
+    
+    return categoryList, statusList, platformList
+
 
 
 @app.route("/product", methods=['GET'])
@@ -419,15 +425,7 @@ def product():
                 LEFT JOIN platform spf ON p.sell_platform_id = spf.platform_id WHERE p.product_id= %s;""", (product_id,))
     productList = connection.fetchall()
     # print('productList',productList)
-    connection1 = getCursor()
-    connection1.execute("""SELECT category_id,category_name FROM category;""")
-    categoryList = connection1.fetchall()
-    connection2 = getCursor()
-    connection2.execute("""SELECT status_id,status_name FROM status;""")
-    statusList = connection2.fetchall()
-    connection3 = getCursor()
-    connection3.execute("""SELECT platform_id,platform_name FROM platform;""")
-    platformList = connection3.fetchall()
+    categoryList, statusList, platformList = get_lists()
     return render_template("product.html",productList=productList,categoryList=categoryList,statusList=statusList,platformList=platformList,product_id=product_id)
 
 
@@ -459,9 +457,227 @@ def markSold():
 def delete():
     product_id = request.args.get("productId")
     connection = getCursor()
+    
+    # Get Image Path
+    connection.execute("""
+        SELECT image_name 
+        FROM products 
+        WHERE product_id = %s;
+        """, (product_id,))
+    img_result = connection.fetchone()
+    if img_result:
+        image_name = img_result[0]
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+        
+        # Delete image file
+        if os.path.exists(image_path):
+            os.remove(image_path)
+    
+    # Delete product record
     connection.execute("""
         DELETE FROM products 
         WHERE product_id = %s;
         """, (product_id,))
+
     flash('The product was successfully deleted!', 'success')
     return redirect(url_for('items'))
+
+
+
+@app.route("/manage", methods=['GET','POST'])
+def manage():
+    categoryList, statusList, platformList = get_lists()
+    manage_type = request.args.get("type")
+    print("manage_type",manage_type) 
+    categoryId_dele = request.args.get("categoryId")
+    platformId_dele = request.args.get("platformId")
+    statusId_dele = request.args.get("statusId")
+    if manage_type =="cate":
+        return render_template("manage_category.html",category_list=categoryList)
+    elif manage_type =="plat":
+        return render_template("manage_platform.html",platform_list=platformList)
+    elif manage_type =="status":
+        return render_template("manage_status.html",status_list=statusList)
+
+
+
+    if categoryId_dele:
+        connection = getCursor()
+        connection.execute("""
+        SELECT product_name,category_id 
+        FROM products 
+        WHERE category_id = %s;
+        """, (categoryId_dele,))
+        category_result = connection.fetchone()
+        if category_result:
+            flash('There are products under this category, so you cannot delete the category.', 'error')
+            return redirect(url_for('manage',type='cate'))
+        else:
+            connection.execute("""
+            DELETE FROM category 
+            WHERE category_id = %s;
+            """, (categoryId_dele,))
+            flash('The category was successfully deleted!', 'success')
+            return redirect(url_for('manage',type='cate'))
+    elif platformId_dele:
+        connection = getCursor()
+        connection.execute("""
+        SELECT product_name 
+        FROM products 
+        WHERE buy_platform_id = %s OR sell_platform_id= %s;
+        """, (platformId_dele,platformId_dele,))
+        platform_result = connection.fetchone()
+        if platform_result:
+            flash('There are products under this platform, so you cannot delete the platform.', 'error')
+            return redirect(url_for('manage',type='plat'))
+        else:
+            connection.execute("""
+            DELETE FROM platform 
+            WHERE platform_id = %s;
+            """, (platformId_dele,))
+            flash('The platform was successfully deleted!', 'success')
+            return redirect(url_for('manage',type='plat'))
+    elif statusId_dele:
+        connection = getCursor()
+        connection.execute("""
+        SELECT product_name,status_id
+        FROM products 
+        WHERE status_id = %s;
+        """, (statusId_dele,))
+        status_result = connection.fetchone()
+        if status_result:
+            flash('There are products under this status, so you cannot delete the status.', 'error')
+            return redirect(url_for('manage',type='status'))
+        else:
+            connection.execute("""
+            DELETE FROM status 
+            WHERE status_id = %s;
+            """, (statusId_dele,))
+            flash('The status was successfully deleted!', 'success')
+            return redirect(url_for('manage',type='status'))
+
+
+
+
+    
+
+
+
+@app.route("/manage_add", methods=[ 'POST'])
+def manage_add():
+    data = request.json
+    category_name = data.get('category_name')
+    platform_name = data.get('platform_name')
+    status_name = data.get('status_name')
+    if category_name:
+        category_name_lower = category_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT category_id, category_name
+        FROM category
+        WHERE LOWER(category_name) = %s;
+        """, (category_name_lower,))
+        category_result = connection.fetchone()
+        if category_result:
+            flash("The category of "+category_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("INSERT INTO category (category_name) VALUES (%s);", (category_name,))
+            flash(category_name+" is added successfully.", 'success')
+            return jsonify(success=True)
+    elif platform_name:
+        platform_name_lower = platform_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT platform_id, platform_name
+        FROM platform
+        WHERE LOWER(platform_name) = %s;
+        """, (platform_name_lower,))
+        platform_result = connection.fetchone()
+        if platform_result:
+            flash("The category of "+platform_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("INSERT INTO platform (platform_name) VALUES (%s);", (platform_name,))
+            flash(platform_name+" is added successfully.", 'success')
+            return jsonify(success=True)
+    elif status_name:
+        status_name_lower = status_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT status_id, status_name
+        FROM status
+        WHERE LOWER(status_name) = %s;
+        """, (status_name_lower,))
+        status_result = connection.fetchone()
+        if status_result:
+            flash("The category of "+status_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("INSERT INTO status (status_name) VALUES (%s);", (status_name,))
+            flash(status_name+" is added successfully.", 'success')
+            return jsonify(success=True)
+    else:
+        return jsonify(success=False, error=" somethings is going wrong.")
+
+
+
+@app.route("/manage_update", methods=['POST'])
+def manage_update():
+    data = request.json
+    category_id = data.get('category_id')
+    category_name = data.get('category_name')
+    platform_id = data.get('platform_id')
+    platform_name = data.get('platform_name')
+    status_id = data.get('status_id')
+    status_name = data.get('status_name')
+    if category_id and category_name:
+        category_name_lower = category_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT category_id
+        FROM category
+        WHERE LOWER(category_name) = %s AND category_id != %s;
+        """, (category_name_lower, category_id))
+        category_result = connection.fetchone()
+        if category_result:
+            flash("The category of "+category_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("UPDATE category SET category_name = %s WHERE category_id = %s;", (category_name, category_id))
+            flash(category_name+" is updated successfully.", 'success')
+            return jsonify(success=True)
+
+    if platform_id and platform_name:
+        platform_name_lower = platform_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT platform_id
+        FROM platform
+        WHERE LOWER(platform_name) = %s AND platform_id != %s;
+        """, (platform_name_lower, platform_id))
+        platform_result = connection.fetchone()
+        if platform_result:
+            flash("The platform of "+platform_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("UPDATE platform SET platform_name = %s WHERE platform_id = %s;", (platform_name, platform_id))
+            flash(platform_name+" is updated successfully.", 'success')
+            return jsonify(success=True)
+    
+    if status_id and status_name:
+        status_name_lower = status_name.lower()
+        connection = getCursor()
+        connection.execute("""
+        SELECT status_id
+        FROM status
+        WHERE LOWER(status_name) = %s AND status_id != %s;
+        """, (status_name_lower, status_id))
+        status_result = connection.fetchone()
+        if status_result:
+            flash("The status of "+status_name+" already exists.", 'error')
+            return jsonify(success=False)
+        else:
+            connection.execute("UPDATE status SET status_name = %s WHERE status_id = %s;", (status_name, status_id))
+            flash(status_name+" is updated successfully.", 'success')
+            return jsonify(success=True)

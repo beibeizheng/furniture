@@ -1,37 +1,81 @@
 body {margin: 0;}
 
-ul.sidenav {
+.container{
+  background-color: white!important;
+}
+
+/* Reset some basic styles */
+.sidenav {
   list-style-type: none;
-  margin: 0;
   padding: 0;
-  width: 25%;
-  background-color: #f1f1f1;
-  position: fixed;
-  height: 100%;
-  overflow: auto;
+  margin: 0;
+  display: flex; 
+  background-color: #f8f9fa;
 }
 
-ul.sidenav li a {
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.sidenav a{
   display: block;
-  color: #000;
-  padding: 8px 16px;
+  padding: 15px;
   text-decoration: none;
+  color: #000;
 }
- 
-ul.sidenav li a.active {
-  background-color: #4CAF50;
+
+.sidenav a.active {
+  background-color: #007bff;
   color: white;
 }
 
-ul.sidenav li a:hover:not(.active) {
-  background-color: #555;
-  color: white;
+.sidenav a:hover {
+  background-color: #ddd;
 }
 
-div.content {
-  margin-left: 25%;
-  padding: 1px 16px;
-  height: 1000px;
+.dropdown .dropbtn {
+  background-color: #f8f9fa;
+  color: #000;
+  padding: 15px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%; /* 将 top 设置为 100% */
+  margin-top: 1px; /* 可选：增加额外的上边距以调整视觉间距 */
+  background-color: #f8f9fa;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background-color: #e9ecef;
+}
+
+.dropbtn .fas{
+  padding-left: 3px;
 }
 
 
@@ -172,11 +216,7 @@ div.content {
     position: relative;
   }
   
-  ul.sidenav li a {
-    float: left;
-    padding: 15px;
-  }
-  
+ 
   div.content {margin-left: 0;}
 }
 
@@ -189,4 +229,5 @@ div.content {
   .items {
     min-width: 800px; 
 }
+
 }

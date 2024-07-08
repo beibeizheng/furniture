@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block header %}
+
+<h2 class="page_title text-center">Platform Management</h2>
+{% endblock %}
+
+{% block content %}
+
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-12">
+            <button id="add-platform-btn" class="btn btn-success mb-3">Add Platform</button>
+            <table class="table table-striped table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Platform Name</th>
+                        <th scope="col">Management</th>
+                    </tr>
+                </thead>
+                <tbody id="platform-table-body">
+                    {% for list in platform_list %}
+                        <tr data-platform-id="{{ list[0] }}">
+                            <th scope="row">{{ loop.index }}</th>
+                            <td class="platform-name">{{ list[1] }}</td>
+                            <td>
+                                <a href="javascript:void(0);" class="btn btn-primary update-button" data-platform-id="{{ list[0] }}">Update</a>
+                                <a href="/manage?platformId={{list[0]}}" class="btn btn-warning">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    document.getElementById('add-platform-btn').addEventListener('click', function() {
+    var tableBody = document.getElementById('platform-table-body');
+    var newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <th scope="row">New</th>
+        <td><input type="text" class="form-control" id="new-platform-name" placeholder="Enter new platform name"></td>
+        <td>
+            <button class="btn btn-success" id="save-platform-btn">Save</button>
+        </td>
+    `;
+    tableBody.appendChild(newRow); // 添加新行到 DOM
+
+    // 现在 save-platform-btn 已经在 DOM 中，可以为其添加事件监听器
+    document.getElementById('save-platform-btn').addEventListener('click', function() {
+        var newPlatformName = document.getElementById('new-platform-name').value;
+        if (newPlatformName.trim() === '') {
+            alert('Platform name cannot be empty');
+            return;
+        }
+
+        // 发送新的分类到服务器
+        fetch('/manage_add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ platform_name: newPlatformName }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // 重新加载页面以查看新的分类
+            } else {
+                location.reload();
+            }
+        })
+    });
+});
+
+document.querySelectorAll('.update-button').forEach(button => {
+        button.addEventListener('click', function() {
+        let platformId = this.dataset.platformId;
+        let row = document.querySelector(`tr[data-platform-id='${platformId}']`);
+        let platformNameCell = row.querySelector('.platform-name');
+        let currentName = platformNameCell.innerText;
+
+        // Check if input field already exists
+        if (platformNameCell.querySelector('input[type="text"]')) {
+            return; // Exit if input field already exists
+        }
+
+        // Create input field
+        let inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.value = currentName;
+        inputField.classList.add('form-control');
+
+        // Create save button
+        let saveButton = document.createElement('button');
+        saveButton.classList.add('btn', 'btn-success', 'ml-2');
+        saveButton.innerText = 'Save';
+        saveButton.addEventListener('click', function() {
+            let newName = inputField.value;
+
+             // Check if new name is empty
+             if (newName === '') {
+                alert('Platform name cannot be empty');
+                return;
+            }
+            
+            // AJAX request to update platform name
+            fetch('/manage_update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ platform_id: platformId, platform_name: newName })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    platformNameCell.innerHTML = newName;
+                    location.reload();
+                } else {
+                    location.reload();
+                }
+            });
+        });
+
+
+        // Clear cell and append input field and save button
+        platformNameCell.innerHTML = '';
+        platformNameCell.appendChild(inputField);
+        platformNameCell.appendChild(saveButton);
+    });
+});
+
+</script>
+
+
+{% endblock %}

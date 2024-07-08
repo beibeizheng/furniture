@@ -31,10 +31,10 @@
         </ul>
         <div class="card-body">
             {% if product[2]!="Sold"%}
-            <a class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#example1Modal" class="btn btn-primary">Mark As Sold</a>
+            <a  data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#example1Modal" class="btn btn-primary">Mark As Sold</a>
             {% endif %}
             <!-- <a href="#" class="card-link">Another link</a> -->
-            <a class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Update All</a>
+            <a data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Update All</a>
             <a href="/delete?productId={{product[11]}}" class="btn btn-warning">Delete</a>
         </div>
     </div>
