@@ -488,16 +488,17 @@ def delete():
 def manage():
     categoryList, statusList, platformList = get_lists()
     manage_type = request.args.get("type")
-    print("manage_type",manage_type) 
+    # print("manage_type",manage_type) 
+    active_page ='management'
     categoryId_dele = request.args.get("categoryId")
     platformId_dele = request.args.get("platformId")
     statusId_dele = request.args.get("statusId")
     if manage_type =="cate":
-        return render_template("manage_category.html",category_list=categoryList)
+        return render_template("manage_category.html",category_list=categoryList,active_page=active_page)
     elif manage_type =="plat":
-        return render_template("manage_platform.html",platform_list=platformList)
+        return render_template("manage_platform.html",platform_list=platformList,active_page=active_page)
     elif manage_type =="status":
-        return render_template("manage_status.html",status_list=statusList)
+        return render_template("manage_status.html",status_list=statusList,active_page=active_page)
 
 
 
