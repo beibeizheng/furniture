@@ -16,7 +16,16 @@
         <div class="card-body">
         <h5 class="card-title">{{ product[0] }}</h5>
         <!-- <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p> -->
-        <p class="card-text"><small class="text-body-secondary">Status:{{ product[2] }}</small></p>
+        <p class="card-text"><small class="text-body-secondary">Status:</small>
+            
+            {% if product[2]=="Sold" %}
+                <span class="status badge-success">{{ product[2] }}</span>
+                {% elif product[2]=="Selling" %}
+                <span class="status badge-warning">{{ product[2] }}</span>
+                {% else %}
+                <span class="status badge-other">{{ product[2] }}</span>
+                {% endif %}
+        </p>
         </div>
         <ul class="list-group list-group-flush">
             <li class="list-group-item"><span class="pro_title">Buy Date:</span>{{ product[3] }}  <span class="pro_title">Buy Price:</span>{{ product[4] }}</li>
