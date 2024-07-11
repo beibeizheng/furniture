@@ -48,7 +48,7 @@
         {% for product in product_list %}
         <div class="col-sm-4 mb-3 mb-sm-0">
             <div class="card text-center item_card" style="width: 18rem;">
-                <img src="{{ url_for('static', filename='images/' + product[10]) }}"  class="card-img-top" alt="{{ product[10] }}">
+                <img src="{{ url_for('static', filename='images/' + product[5]) }}"  class="card-img-top" alt="{{ product[10] }}">
                 <div class="card-body">
                   <h5 class="card-title">{{ product[0] }}</h5>
                   <p class="card-text"><span class="pro_title">Status:</span>
@@ -62,7 +62,7 @@
                 </p>
                   <p class="card-text"><span class="pro_title">Buy Date:</span>{{ product[3] }}</p>
                   <p class="card-text"><span class="pro_title">Buy Price:</span>{{ product[4] }}</p>
-                  <a class="btn btn-success" href="/product?productId={{ product[11] }} ">Details</a>
+                  <a class="btn btn-success" href="/product?productId={{ product[6] }} ">Details</a>
                   <!-- <a class="btn btn-primary" data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Details</a> -->
                 </div>
               </div>

@@ -12,7 +12,7 @@
 {% for product in productList %}
 
     <div class="card mb-3 text-center card-size">
-        <img src="{{ url_for('static', filename='images/' + product[10]) }}"  class="card-img-top" alt="{{ product[10] }}" style="max-width:100%;">
+        <img src="{{ url_for('static', filename='images/' + product[6]) }}"  class="card-img-top" alt="{{ product[10] }}" style="max-width:100%;">
         <div class="card-body">
         <h5 class="card-title">{{ product[0] }}</h5>
         <!-- <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p> -->
@@ -29,27 +29,35 @@
         </div>
         <ul class="list-group list-group-flush">
             <li class="list-group-item"><span class="pro_title">Buy Date:</span>{{ product[3] }}  <span class="pro_title">Buy Price:</span>{{ product[4] }}</li>
-            {% if product[2]=="Sold"%}
-            <li class="list-group-item"><span class="pro_title">Sold Date:</span>{{ product[6] }}  <span class="pro_title">Sold Price:</span>{{ product[7] }}</li>
-            <li class="list-group-item">
-                <span class="pro_title">Fees:</span> {{ product[9] }} 
-                <span class="pro_title">Income:</span> 
-                {{ product[7] - product[4] - product[9] }}
-            </li>
+            {% if soldList %}
+                {% for item in soldList %}
+                <li class="list-group-item"><span class="pro_title">Sold Date{{loop.index}}:</span>{{ item [0] }}  <span class="pro_title">Sold Price{{loop.index}}:</span>{{ item [1] }}<span class="pro_title">Fees{{loop.index}}:</span> {{ item [3] }} </li>
+                {% endfor %}
+            
+            <li class="list-group-item"><span class="pro_title">Total Income:</span> 
+                    {{ income }}</li>
             {% endif %}
         </ul>
         <div class="card-body">
             {% if product[2]!="Sold"%}
-            <a  data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#example1Modal" class="btn btn-success">Mark As Sold</a>
+            <a  data-product-id="{{ product[7] }}" data-bs-toggle="modal" data-bs-target="#example1Modal" class="btn btn-success">Mark As Sold</a>
             {% endif %}
             <!-- <a href="#" class="card-link">Another link</a> -->
-            <a data-product-id="{{ product[11] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Update All</a>
-            <a href="/delete?productId={{product[11]}}" class="btn btn-warning">Delete</a>
+            <a data-product-id="{{ product[7] }}" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-primary">Update All</a>
+            <a href="#" onclick="confirmDelete({{product[7]}})" class="btn btn-warning">Delete</a>
         </div>
     </div>
 
 
 {% endfor%}
+
+<script>
+    function confirmDelete(productId) {
+        if (confirm("Are you sure you want to delete this product?")) {
+            window.location.href = "/delete?productId=" + productId;
+        }
+    }
+</script>
 </div>
 <!-- Modal -->
 <div class="modal fade" id="example1Modal" tabindex="-1" aria-labelledby="example1ModalLabel" aria-hidden="true">
@@ -84,7 +92,7 @@
                     </div>
                 </div>
             
-                <input type="hidden" id="product_id" name="product_id">
+                <input type="hidden" id="product_id" name="product_id"value="{{product_id}}">
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary">Save changes</button>
@@ -151,29 +159,37 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        {% for i in range(1, sold_length + 1) %}
+                        <input type="hidden" id="sell_id{{i}}" name="sell_id{{i}}">
                         <div class="form-group">
-                            <label for="sell_date">Sell Date</label>
-                            <input type="date" class="form-control" id="sell_date" name="sell_date">
+                            <label for="sell_date{{i}}">Sell Date{{i}}</label>
+                            <input type="date" class="form-control" id="sell_date{{i}}" name="sell_date{{i}}">
                         </div>
                         <div class="form-group">
-                            <label for="edit_sell_price">Sell Price</label>
-                            <input type="number" step="0.01" class="form-control" id="sell_price" name="sell_price">
+                            <label for="edit_sell_price">Sell Price{{i}}</label>
+                            <input type="number" step="0.01" class="form-control" id="sell_price{{i}}" name="sell_price{{i}}">
                         </div>
                         <div class="form-group">
-                            <label for="edit_sell_platform">Sell Platform</label>
-                            <select class="form-control" id="sell_platform" name="sell_platform">
+                            <label for="edit_sell_platform">Sell Platform{{i}}</label>
+                            <select class="form-control" id="sell_platform{{i}}" name="sell_platform{{i}}">
+                                    <option value="">No Value...</option>
                                 {% for platform in platformList %}
                                     <option value="{{platform[0]}}">{{platform[1]}}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="edit_fees">Fees</label>
-                            <input type="number" step="0.01" class="form-control" id="fees" name="fees">
+                            <label for="edit_fees">Fees{{i}}</label>
+                            <input type="number" step="0.01" class="form-control" id="fees{{i}}" name="fees{{i}}">
+                        </div>
+                        {% endfor %}
+                        <div id="additionalSoldDetails"></div>
+                        <div class="form-group">
+                            <a class="btn btn-primary" onclick="addSoldDetails()">Add More Sold Details</a>
                         </div>
                         <div class="form-group">
                             <label for="edit_product_image">Product Image</label>
-                            <input type="file" class="form-control" id="product_image" name="product_image" accept=".png, .jpg, .jpeg, .gif">
+                            <input type="file" class="form-control" id="product_image" name="product_image" accept=".png, .jpg, .jpeg, .gif,.heic">
                             <input type="hidden" id="existing_product_image" name="existing_product_image">
                             <img id="product_image_preview" src="" alt="Product Image" style="display:none; width: 100px; height: 100px; margin-top: 10px;">
                         </div>
@@ -189,7 +205,72 @@
         </div>
         </div>
     </div>
-</div>
+<script>
+    let soldDetailsCount = {{ sold_length }} +1;
+</script>
+
+<script>
+
+    function addSoldDetails() {
+        const maxSoldDetails = 3;
+
+        if (soldDetailsCount > maxSoldDetails) {
+            alert("You can only add up to 3 sets of sold details.");
+            return;
+        }
+        
+        let uniqueId = `soldDetails${soldDetailsCount}`;
+
+        let html = `
+        <div class="sold-details" id="${uniqueId}">
+            <div class="form-group">
+                <label for="sell_date${soldDetailsCount}">Sell Date${soldDetailsCount}</label>
+                <input type="date" class="form-control" id="sell_date${soldDetailsCount}" name="sell_date${soldDetailsCount}" required>
+            </div>
+            <div class="form-group">
+                <label for="sell_price${soldDetailsCount}">Sell Price${soldDetailsCount}</label>
+                <input type="number" step="0.01" class="form-control" id="sell_price${soldDetailsCount}" name="sell_price${soldDetailsCount}" required>
+            </div>
+            <div class="form-group">
+                <label for="sell_platform${soldDetailsCount}">Sell Platform${soldDetailsCount}</label>
+                <select class="form-control" id="sell_platform${soldDetailsCount}" name="sell_platform${soldDetailsCount}"required>
+                    {% for platform in platformList %}
+                        <option value="{{platform[0]}}">{{platform[1]}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fees${soldDetailsCount}">Fees${soldDetailsCount}</label>
+                <input type="number" step="0.01" class="form-control" id="fees${soldDetailsCount}" name="fees${soldDetailsCount}">
+            </div>
+            <div class="form-group">
+                    <a class="btn btn-danger" onclick="removeSoldDetails('${uniqueId}')">Delete</a>
+                </div>
+            </div>
+        `;
+    
+        // 创建一个新的 div 元素来包裹销售详情
+        let div = document.createElement('div');
+        div.innerHTML = html;
+
+        // 将新创建的销售详情添加到页面中的指定位置
+        document.getElementById('additionalSoldDetails').appendChild(div);
+
+        // console.log("soldDetailsCount",soldDetailsCount)
+        let today = new Date().toISOString().split('T')[0];
+        document.getElementById(`sell_date${soldDetailsCount}`).value = today;
+        
+        // 增加销售详情计数
+        soldDetailsCount++;
+    }
+    function removeSoldDetails(id) {
+        let element = document.getElementById(id);
+        element.parentNode.removeChild(element);
+        soldDetailsCount--;
+    }
+
+</script>
+
 
 <script>
 const myModal = document.getElementById('myModal')
@@ -231,10 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('buy_date').value = formatDate(data.buy_date);
                     document.getElementById('buy_price').value = data.buy_price;
                     document.getElementById('buy_platform').value = data.buy_platform;
-                    document.getElementById('sell_date').value = formatDate(data.sell_date);
-                    document.getElementById('sell_price').value = data.sell_price;
-                    document.getElementById('sell_platform').value = data.sell_platform;
-                    document.getElementById('fees').value = data.fees;
                     document.getElementById('existing_product_image').value = data.image_name;
                     if (data.image_name) {
                     const imagePath = '/static/images/' + data.image_name;
@@ -242,6 +319,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     imgPreview.src = imagePath;
                     imgPreview.style.display = 'block';
                 }
+                    document.getElementById('sell_id1').value = data.sell_id1;
+                    document.getElementById('sell_date1').value = formatDate(data.sell_date1);
+                    document.getElementById('sell_price1').value = data.sell_price1;
+                    document.getElementById('sell_platform1').value = data.sell_platform1;
+                    document.getElementById('fees1').value = data.fees1;
+                    document.getElementById('sell_id2').value = data.sell_id2;
+                    document.getElementById('sell_date2').value = formatDate(data.sell_date2);
+                    document.getElementById('sell_price2').value = data.sell_price2;
+                    document.getElementById('sell_platform2').value = data.sell_platform2;
+                    document.getElementById('fees2').value = data.fees2;
+                    document.getElementById('sell_id3').value = data.sell_id3;
+                    document.getElementById('sell_date3').value = formatDate(data.sell_date3);
+                    document.getElementById('sell_price3').value = data.sell_price3;
+                    document.getElementById('sell_platform3').value = data.sell_platform3;
+                    document.getElementById('fees3').value = data.fees3;
+                   
                     
 
                      // Set the selected status of product_status
