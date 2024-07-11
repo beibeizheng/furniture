@@ -86,7 +86,7 @@
                 {% for product in product_list %}
                 <tr>
                     <td>
-                        <img src="{{ url_for('static', filename='images/' + product[10]) }}" alt="{{ product[10] }}">
+                        <img src="{{ product[10]}}" alt="{{ product[10] }}">
                     </td>
                     <td>{{ product[0] }}</td>
                     <td>{{ product[3] }}</td>

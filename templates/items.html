@@ -48,7 +48,7 @@
         {% for product in product_list %}
         <div class="col-sm-4 mb-3 mb-sm-0">
             <div class="card text-center item_card" style="width: 18rem;">
-                <img src="{{ url_for('static', filename='images/' + product[5]) }}"  class="card-img-top" alt="{{ product[10] }}">
+                <img src="{{ product[5]}}"  class="card-img-top" alt="{{ product[10] }}">
                 <div class="card-body">
                   <h5 class="card-title">{{ product[0] }}</h5>
                   <p class="card-text"><span class="pro_title">Status:</span>

@@ -3,10 +3,10 @@ from flask import render_template
 from flask import request
 from flask import redirect
 from flask import url_for
+import requests
 from werkzeug.utils import secure_filename
 from PIL import Image, UnidentifiedImageError
 from pillow_heif import register_heif_opener
-
 
 from datetime import date
 from flask import jsonify
@@ -26,6 +26,8 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 
 
+app.config['CLOUDFLARE_API_TOKEN'] = 'rBG0XF6-fclPR1uojxYulSSIPHtWJO6Znv0lPF3Z'
+app.config['CLOUDFLARE_ACCOUNT_ID'] = 'dad4cd92b66b10176ae784292d55b95c'
 
 # Defining custom filters
 def days_diff(end_date, start_date):
@@ -55,24 +57,32 @@ register_heif_opener()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-register_heif_opener()
-
-def resize_image(image_path):
+def upload_to_cloudflare(file_path, filename):
     try:
-        img = Image.open(image_path)
-        img_format = img.format
-        img.save(image_path, format=img_format, optimize=True, quality=85)
-        file_size = os.path.getsize(image_path)
-        while file_size > 50 * 1024:
-            img = img.resize((int(img.size[0] * 0.9), int(img.size[1] * 0.9)), Image.LANCZOS)
-            img.save(image_path, format=img_format, optimize=True, quality=85)
-            file_size = os.path.getsize(image_path)
-    except UnidentifiedImageError:
-        os.remove(image_path)
-        raise
+        with open(file_path, 'rb') as f:
+            url = f"https://api.cloudflare.com/client/v4/accounts/dad4cd92b66b10176ae784292d55b95c/images/v1"
+            headers = {
+                "Authorization": "Bearer rBG0XF6-fclPR1uojxYulSSIPHtWJO6Znv0lPF3Z"
+            }
+            files = {
+                'file': (filename, f)
+            }
+            # print(f"URL: {url}")
+            # print(f"Headers: {headers}")
+            response = requests.post(url, headers=headers, files=files)
+            # print(f"Response: {response.text}")
+            response.raise_for_status()
+
+            data = response.json()
+            if data['success']:
+                return data['result']['variants'][0]
+            else:
+                flash('Failed to upload image to Cloudflare.', 'danger')
+                return None
     except Exception as e:
-        print(f"Error resizing image: {e}")
-        raise
+        flash(f'An error occurred: {str(e)}', 'danger')
+        return None
+
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -84,12 +94,11 @@ def home():
             buy_date = request.form['buy_date']
             buy_price = request.form['buy_price']
             buy_platform_id = request.form['buy_platform']
-            file = request.files['product_image']
             sell_date = request.form.get('sell_date') or None
             sell_price = request.form.get('sell_price') or None
             sell_platform_id = request.form.get('sell_platform') or None
             fees = request.form.get('fees') or 0
-
+            file = request.files['product_image']
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -108,18 +117,12 @@ def home():
                         os.remove(file_path)
                         flash('The uploaded HEIC file could not be converted.', 'danger')
                         return redirect(url_for('home'))
-                try:
-                    resize_image(file_path)
-                    file_size = os.path.getsize(file_path)
-                    if file_size > 50 * 1024:
-                        os.remove(file_path)
-                        flash('The uploaded image could not be resized to fit within the 50KB limit.', 'danger')
-                        return redirect(url_for('home'))
 
-                    product_image = os.path.join('images', filename)
+                image_url = upload_to_cloudflare(file_path, filename)
+                if image_url:
                     connection = getCursor()
-                    connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, image_name)
-                      VALUES (%s, %s, %s, %s, %s, %s, %s);""",(product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, filename))
+                    connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, image_url)
+                      VALUES (%s, %s, %s, %s, %s, %s, %s);""",(product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, image_url))
 
                     connection.execute("SELECT LAST_INSERT_ID();")
                     product_id = connection.fetchone()[0]
@@ -129,15 +132,14 @@ def home():
 
                     flash('A new product was successfully added!', 'success')
                     return redirect(url_for('home'))
-                except UnidentifiedImageError:
-                    flash('The uploaded file is not a valid image. Please upload a valid image file.', 'danger')
-                    return redirect(url_for('home'))
+        
             else:
-                    flash('Invalid file format or no file uploaded.', 'danger')
-                    return redirect(url_for('home'))
+                flash('Invalid file format or no file uploaded.', 'danger')
+                return redirect(url_for('home'))
+                
         except Exception as e:
             flash(f'An error occurred: {e}', 'danger')
-            return redirect(url_for('home'))
+        return redirect(url_for('home'))
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT category_id,category_name FROM category;""")
@@ -166,7 +168,7 @@ def items():
                 s.status_name,
                 p.buy_date,
                 p.buy_price,
-                p.image_name,
+                p.image_url,
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
@@ -181,7 +183,7 @@ def items():
                 s.status_name,
                 p.buy_date,
                 p.buy_price,
-                p.image_name,
+                p.image_url,
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
@@ -194,7 +196,7 @@ def items():
                 s.status_name,
                 p.buy_date,
                 p.buy_price,
-                p.image_name,
+                p.image_url,
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
@@ -207,7 +209,7 @@ def items():
                 s.status_name,
                 p.buy_date,
                 p.buy_price,
-                p.image_name,
+                p.image_url,
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
@@ -219,7 +221,7 @@ def items():
                 s.status_name,
                 p.buy_date,
                 p.buy_price,
-                p.image_name,
+                p.image_url,
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
@@ -302,7 +304,7 @@ def update_item():
         buy_date = %s,
         buy_price = %s,
         buy_platform_id = %s,
-        image_name =%s
+        image_url =%s
         WHERE product_id = %s;""",(product_name, category_id, status_id, buy_date, buy_price,
         buy_platform_id,product_image,product_id,))
 
@@ -366,7 +368,7 @@ def report():
 
         connection4 = getCursor()
         connection4.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_name,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
                 FROM sales s JOIN products p on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
@@ -393,7 +395,7 @@ def report():
 
         connection4 = getCursor()
         connection4.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_name,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
                 FROM sales s JOIN products p on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
@@ -437,7 +439,7 @@ def report():
 
         connection5 = getCursor()
         connection5.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_name,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
                 FROM products p JOIN sales s on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
@@ -485,7 +487,7 @@ def product():
             p.buy_date,
             p.buy_price,
             pf_buy.platform_name AS buy_platform_name,
-            p.image_name,
+            p.image_url,
             p.product_id
         FROM products p
         LEFT JOIN category c ON p.category_id = c.category_id
@@ -544,14 +546,14 @@ def delete():
     
     # Get Image Path
     connection.execute("""
-        SELECT image_name 
+        SELECT image_url 
         FROM products 
         WHERE product_id = %s;
         """, (product_id,))
     img_result = connection.fetchone()
     if img_result:
-        image_name = img_result[0]
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+        image_url = img_result[0]
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
         
         # Delete image file
         if os.path.exists(image_path):

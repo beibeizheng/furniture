@@ -12,7 +12,7 @@
 {% for product in productList %}
 
     <div class="card mb-3 text-center card-size">
-        <img src="{{ url_for('static', filename='images/' + product[6]) }}"  class="card-img-top" alt="{{ product[10] }}" style="max-width:100%;">
+        <img src="{{  product[6]}}"  class="card-img-top" alt="{{ product[6] }}" style="max-width:100%;">
         <div class="card-body">
         <h5 class="card-title">{{ product[0] }}</h5>
         <!-- <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p> -->
@@ -314,9 +314,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('buy_platform').value = data.buy_platform;
                     document.getElementById('existing_product_image').value = data.image_name;
                     if (data.image_name) {
-                    const imagePath = '/static/images/' + data.image_name;
                     const imgPreview = document.getElementById('product_image_preview');
-                    imgPreview.src = imagePath;
+                    imgPreview.src = data.image_name;
                     imgPreview.style.display = 'block';
                 }
                     document.getElementById('sell_id1').value = data.sell_id1;
