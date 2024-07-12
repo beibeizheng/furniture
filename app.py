@@ -119,6 +119,7 @@ def home():
                         return redirect(url_for('home'))
 
                 image_url = upload_to_cloudflare(file_path, filename)
+                os.remove(file_path)
                 if image_url:
                     connection = getCursor()
                     connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id, image_url)
@@ -269,7 +270,7 @@ def get_product():
             product_data[f'sell_platform{i+1}'] = sales[4]
             product_data[f'fees{i+1}'] = sales[5]
 
-    print("product_data",product_data)
+    # print("product_data",product_data)
     return jsonify(product_data)
 
 
@@ -284,17 +285,38 @@ def update_item():
     buy_price = request.form['buy_price']
     buy_platform_id = request.form['buy_platform']
     file = request.files['product_image']
-
-    existing_image_name = request.form['existing_product_image']
-
+    # print("file",file)
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        product_image = filename
-    else:
-        product_image = existing_image_name
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
 
+        # Convert HEIC to JPEG if necessary
+        if filename.lower().endswith('.heic'):
+            try:
+                img = Image.open(file_path)
+                jpeg_path = file_path.rsplit('.', 1)[0] + '.jpeg'
+                img.save(jpeg_path, "JPEG")
+                os.remove(file_path)  # Remove the original HEIC file
+                file_path = jpeg_path
+                filename = os.path.basename(file_path)
+            except Exception as e:
+                os.remove(file_path)
+                flash('The uploaded HEIC file could not be converted.', 'danger')
+                return redirect(url_for('home'))
 
+        image_url = upload_to_cloudflare(file_path, filename)
+        # print("image_url",image_url)
+        os.remove(file_path)
+        if image_url:
+            connection = getCursor()
+            # Execute the SQL query
+            connection = getCursor()
+            connection.execute("""UPDATE products SET 
+                image_url =%s
+                WHERE product_id = %s;""",(image_url,product_id,))
+   
+    connection = getCursor()
     # Execute the SQL query
     connection = getCursor()
     connection.execute("""UPDATE products SET 
@@ -303,47 +325,46 @@ def update_item():
         status_id = %s,
         buy_date = %s,
         buy_price = %s,
-        buy_platform_id = %s,
-        image_url =%s
+        buy_platform_id = %s
         WHERE product_id = %s;""",(product_name, category_id, status_id, buy_date, buy_price,
-        buy_platform_id,product_image,product_id,))
+        buy_platform_id,product_id,))
 
     for i in range(1, 4):
-            sell_date = request.form.get(f'sell_date{i}')or None
-            sell_price = request.form.get(f'sell_price{i}')or None
-            sell_platform = request.form.get(f'sell_platform{i}')or None
-            fee = request.form.get(f'fees{i}')or 0
-            sell_id = request.form.get(f'sell_id{i}')or None
-            print("sell_id",sell_id)
-            connection = getCursor()
-            if sell_id and sell_id!= 'undefined':
-                if sell_date and sell_price and sell_platform:
-                    connection.execute("""UPDATE sales SET 
-                    sell_date = %s,
-                    sell_price = %s,
-                    sell_platform_id = %s,
-                    fees = %s
-                    WHERE sale_id = %s;""",(sell_date,sell_price,sell_platform,fee,sell_id,))
-                elif sell_date is None and sell_price is None and sell_platform is None:
-                    connection.execute("""DELETE FROM sales 
-                    WHERE sale_id = %s;""",(sell_id,))
-                    connection.execute("""SELECT * FROM sales 
-                    WHERE product_id = %s;""",(product_id,))
-                    sales_list = connection.fetchall()
-                    if not sales_list :
-                        connection.execute("""UPDATE products SET 
-                        status_id = (SELECT status_id FROM status WHERE status_name = 'Selling')
-                        WHERE product_id = %s;""",(product_id,))
-
-            else:
-                if sell_date and sell_price and sell_platform:
-                    connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
-                                    VALUES (%s, %s, %s, %s, %s);""",
-                                (product_id, sell_date, sell_price, sell_platform,fee))
+        sell_date = request.form.get(f'sell_date{i}')or None
+        sell_price = request.form.get(f'sell_price{i}')or None
+        sell_platform = request.form.get(f'sell_platform{i}')or None
+        fee = request.form.get(f'fees{i}')or 0
+        sell_id = request.form.get(f'sell_id{i}')or None
+        # print("sell_id",sell_id)
+        connection = getCursor()
+        if sell_id and sell_id!= 'undefined':
+            if sell_date and sell_price and sell_platform:
+                connection.execute("""UPDATE sales SET 
+                sell_date = %s,
+                sell_price = %s,
+                sell_platform_id = %s,
+                fees = %s
+                WHERE sale_id = %s;""",(sell_date,sell_price,sell_platform,fee,sell_id,))
+            elif sell_date is None and sell_price is None and sell_platform is None:
+                connection.execute("""DELETE FROM sales 
+                WHERE sale_id = %s;""",(sell_id,))
+                connection.execute("""SELECT * FROM sales 
+                WHERE product_id = %s;""",(product_id,))
+                sales_list = connection.fetchall()
+                if not sales_list :
                     connection.execute("""UPDATE products SET 
-                        status_id = (SELECT status_id FROM status WHERE status_name = 'Sold')
-                        WHERE product_id = %s;""",(product_id,))
-                    
+                    status_id = (SELECT status_id FROM status WHERE status_name = 'Selling')
+                    WHERE product_id = %s;""",(product_id,))
+
+        else:
+            if sell_date and sell_price and sell_platform:
+                connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
+                                VALUES (%s, %s, %s, %s, %s);""",
+                            (product_id, sell_date, sell_price, sell_platform,fee))
+                connection.execute("""UPDATE products SET 
+                    status_id = (SELECT status_id FROM status WHERE status_name = 'Sold')
+                    WHERE product_id = %s;""",(product_id,))
+                
 
     flash('The product was successfully updated!', 'success')
     return redirect(url_for('product', productId=product_id))
