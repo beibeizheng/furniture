@@ -110,14 +110,7 @@ def upload_to_cloudflare(file_path, filename):
         return None
 
 
-def delete_file_from_r2(image_name, bucket_name):
-    s3_client = r2connect()
-    try:
-        s3_client.delete_object(Bucket=bucket_name, Key=image_name)
-        return True
-    except Exception as e:
-        print(f"Error deleting file: {e}")
-        return False
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -164,7 +157,7 @@ def home():
                         return redirect(url_for('home'))
 
                 upload_to_cloudflare(file_path, filename)
-                os.remove(file_path)
+                # os.remove(file_path)
                 connection1 = getCursor()
                 connection1.execute("""Update products SET image_url=%s WHERE product_id=%s;""",(filename,product_id,))
                 if sell_date and sell_price and sell_platform_id:
@@ -624,12 +617,11 @@ def delete():
         """, (product_id,))
     img_result = connection.fetchone()
     if img_result:
-        image_url = img_result[0]
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
+        try:
+            r2_client.delete_file(img_result, "secondhand")
+        except Exception as error:
+            print(error)
         
-        # Delete image file
-        if os.path.exists(image_path):
-            os.remove(image_path)
     
     # Delete product record
     connection.execute("""
