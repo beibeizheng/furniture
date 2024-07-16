@@ -14,6 +14,7 @@ from datetime import date
 from flask import jsonify
 import calendar
 import os
+from os.path import join, dirname
 import re
 from datetime import datetime, timedelta
 import mysql.connector
@@ -21,6 +22,11 @@ from mysql.connector import FieldType
 import connect
 
 from dotenv import load_dotenv
+dotenv_path = join(dirname(__file__), '.env')
+load_dotenv(dotenv_path, override=True)
+
+import r2connect
+from r2connect.exceptions.cloudflare.r2 import BucketDoesNotExist, ObjectAlreadyExists
 
 from r2connect.r2client import R2Client
 from r2connect.exceptions.cloudflare.r2 import ObjectAlreadyExists, ObjectDoesNotExist
@@ -33,8 +39,15 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 
 
-app.config['CLOUDFLARE_API_TOKEN'] = 'rBG0XF6-fclPR1uojxYulSSIPHtWJO6Znv0lPF3Z'
-app.config['CLOUDFLARE_ACCOUNT_ID'] = 'dad4cd92b66b10176ae784292d55b95c'
+try:
+    r2_client = R2Client()
+except r2connect.exceptions.cloudflare.r2.MissingConfig as error:
+#     # A required environment variable is missing
+    print("------")
+    print(error)
+
+# app.config['CLOUDFLARE_API_TOKEN'] = 'rBG0XF6-fclPR1uojxYulSSIPHtWJO6Znv0lPF3Z'
+# app.config['CLOUDFLARE_ACCOUNT_ID'] = 'dad4cd92b66b10176ae784292d55b95c'
 
 # Defining custom filters
 def days_diff(end_date, start_date):
@@ -53,6 +66,8 @@ app.jinja_env.filters['days_diff'] = days_diff
 #https://dad4cd92b66b10176ae784292d55b95c.r2.cloudflarestorage.com
 
 
+
+
 dbconn = None
 connection = None
 
@@ -67,15 +82,6 @@ def getCursor():
 
 register_heif_opener()
 
-try:
-    r2_client = R2Client()
-except Exception as error:
-    # A required environment variable is missing
-    print(error)
-# except r2connect.exceptions.cloudflare.r2.MissingConfig as error:
-#     # A required environment variable is missing
-#     print(error)
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
@@ -83,28 +89,14 @@ def upload_to_cloudflare(file_path, filename):
     try:
         try:
             r2_client.upload_file(file_path, filename, "secondhand")
+
+        except r2connect.exceptions.cloudflare.r2.BucketDoesNotExist as error:
+            print(f"The specified bucket does not exist: secondhand")
+        except r2connect.exceptions.cloudflare.r2.ObjectAlreadyExists as error:
+            print(f"An object with the same object_key already exists: secondhand")
         except Exception as error:
             print(error)
-        # with open(file_path, 'rb') as f:
-        #     url = f"https://api.cloudflare.com/client/v4/accounts/dad4cd92b66b10176ae784292d55b95c/images/v1"
-        #     headers = {
-        #         "Authorization": "Bearer rBG0XF6-fclPR1uojxYulSSIPHtWJO6Znv0lPF3Z"
-        #     }
-        #     files = {
-        #         'file': (filename, f)
-        #     }
-        #     # print(f"URL: {url}")
-        #     # print(f"Headers: {headers}")
-        #     response = requests.post(url, headers=headers, files=files)
-        #     # print(f"Response: {response.text}")
-        #     response.raise_for_status()
-
-        #     data = response.json()
-        #     if data['success']:
-        #         return data['result']['variants'][0]
-        #     else:
-        #         flash('Failed to upload image to Cloudflare.', 'danger')
-        #         return None
+        
     except Exception as e:
         flash(f'An error occurred: {str(e)}', 'danger')
         return None
@@ -116,64 +108,60 @@ def upload_to_cloudflare(file_path, filename):
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
-        try:
-            product_name = request.form['product_name']
-            category_id = request.form['product_category']
-            status_id = request.form['product_status']
-            buy_date = request.form['buy_date']
-            buy_price = request.form['buy_price']
-            buy_platform_id = request.form['buy_platform']
-            sell_date = request.form.get('sell_date') or None
-            sell_price = request.form.get('sell_price') or None
-            sell_platform_id = request.form.get('sell_platform') or None
-            fees = request.form.get('fees') or 0
-            file = request.files['product_image']
-            if file and allowed_file(file.filename):
-                connection = getCursor()
-                connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id)
-                    VALUES (%s, %s, %s, %s, %s, %s);""",(product_name, category_id, status_id, buy_date, buy_price, buy_platform_id))
+        product_name = request.form['product_name']
+        category_id = request.form['product_category']
+        status_id = request.form['product_status']
+        buy_date = request.form['buy_date']
+        buy_price = request.form['buy_price']
+        buy_platform_id = request.form['buy_platform']
+        sell_date = request.form.get('sell_date') or None
+        sell_price = request.form.get('sell_price') or None
+        sell_platform_id = request.form.get('sell_platform') or None
+        fees = request.form.get('fees') or 0
+        file = request.files['product_image'] 
+        if file and allowed_file(file.filename):
+            connection = getCursor()
+            connection.execute("""INSERT INTO products (product_name, category_id, status_id, buy_date, buy_price, buy_platform_id)
+                VALUES (%s, %s, %s, %s, %s, %s);""",(product_name, category_id, status_id, buy_date, buy_price, buy_platform_id))
 
-                connection.execute("SELECT LAST_INSERT_ID();")
-                product_id = connection.fetchone()[0]
-                 # Generate a new filename
-                file_ext = file.filename.rsplit('.', 1)[1].lower()
-                filename = f"{product_id}.{file_ext}"
-                # print("new_filename",filename)
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
-               
-                # Convert HEIC to JPEG if necessary
-                if filename.lower().endswith('.heic'):
-                    try:
-                        img = Image.open(file_path)
-                        jpeg_path = file_path.rsplit('.', 1)[0] + '.jpeg'
-                        img.save(jpeg_path, "JPEG")
-                        os.remove(file_path)  # Remove the original HEIC file
-                        file_path = jpeg_path
-                        filename = os.path.basename(file_path)
-                    except Exception as e:
-                        os.remove(file_path)
-                        flash('The uploaded HEIC file could not be converted.', 'danger')
-                        return redirect(url_for('home'))
+            connection.execute("SELECT LAST_INSERT_ID();")
+            product_id = connection.fetchone()[0]
+                # Generate a new filename
+            file_ext = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"Picture{product_id}.{file_ext}" # 1.jpg
+            # print("new_filename",filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Convert HEIC to JPEG if necessary
+            if filename.lower().endswith('.heic'):
+                try:
+                    img = Image.open(file_path)
+                    jpeg_path = file_path.rsplit('.', 1)[0] + '.jpeg'
+                    img.save(jpeg_path, "JPEG")
+                    os.remove(file_path)  # Remove the original HEIC file
+                    file_path = jpeg_path
+                    filename = os.path.basename(file_path)
+                except Exception as e:
+                    os.remove(file_path)
+                    flash('The uploaded HEIC file could not be converted.', 'danger')
+                    return redirect(url_for('home'))
+            
 
-                upload_to_cloudflare(file_path, filename)
-                # os.remove(file_path)
-                connection1 = getCursor()
-                connection1.execute("""Update products SET image_url=%s WHERE product_id=%s;""",(filename,product_id,))
-                if sell_date and sell_price and sell_platform_id:
-                    connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
-                        VALUES (%s, %s, %s, %s, %s);""",(product_id, sell_date, sell_price, sell_platform_id, fees))
+            upload_to_cloudflare(file_path, filename)
+            os.remove(file_path)
+            connection1 = getCursor()
+            connection1.execute("""Update products SET image_url=%s WHERE product_id=%s;""",(filename,product_id,))
+            if sell_date and sell_price and sell_platform_id:
+                connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
+                    VALUES (%s, %s, %s, %s, %s);""",(product_id, sell_date, sell_price, sell_platform_id, fees))
 
-                flash('A new product was successfully added!', 'success')
-                return redirect(url_for('home'))
-        
-            else:
-                flash('Invalid file format or no file uploaded.', 'danger')
-                return redirect(url_for('home'))
-                
-        except Exception as e:
-            flash(f'An error occurred: {e}', 'danger')
-        return redirect(url_for('home'))
+            flash('A new product was successfully added!', 'success')
+            return redirect(url_for('home'))
+    
+        else:
+            flash('Invalid file format or no file uploaded.', 'danger')
+            return redirect(url_for('home'))
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT category_id,category_name FROM category;""")
@@ -324,7 +312,7 @@ def update_item():
         connection.execute("""SELECT image_url FROM products 
             WHERE product_id = %s;""",(product_id,))
         image_name = connection.fetchone()[0]
-        print('image_name',image_name)
+        # print('image_name',image_name)
         if image_name:
             try:
                 r2_client.delete_file(image_name, "secondhand")
@@ -332,7 +320,7 @@ def update_item():
                 print(error)
 
         file_ext = file.filename.rsplit('.', 1)[1].lower()
-        filename = f"{product_id}.{file_ext}"
+        filename = f"Picture{product_id}.{file_ext}"
         # print("new_filename",filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
@@ -617,14 +605,15 @@ def delete():
         """, (product_id,))
     img_result = connection.fetchone()
     if img_result:
+        image_name=img_result[0]
         try:
-            r2_client.delete_file(img_result, "secondhand")
+            r2_client.delete_file(image_name, "secondhand")
         except Exception as error:
             print(error)
-        
-    
+     
+    connection1 = getCursor()
     # Delete product record
-    connection.execute("""
+    connection1.execute("""
         DELETE FROM products 
         WHERE product_id = %s;
         """, (product_id,))
