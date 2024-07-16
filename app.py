@@ -153,7 +153,8 @@ def home():
             connection1 = getCursor()
             connection1.execute("""Update products SET image_url=%s WHERE product_id=%s;""",(filename,product_id,))
             if sell_date and sell_price and sell_platform_id:
-                connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
+                connection2 = getCursor()
+                connection2.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
                     VALUES (%s, %s, %s, %s, %s);""",(product_id, sell_date, sell_price, sell_platform_id, fees))
 
             flash('A new product was successfully added!', 'success')
