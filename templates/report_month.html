@@ -8,7 +8,7 @@
 {% block content %}
 <nav class="nav nav-pills flex-column flex-sm-row">
     <a class="flex-sm-fill text-sm-center nav-link" aria-current="page" href="/report">All Data</a>
-    <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=year">This Year</a>
+    <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=year">This Year</a>
     <a class="flex-sm-fill text-sm-center nav-link active" href="/report?range=month">This Month</a>
     <!-- <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=week">This Week</a> -->
 </nav>
@@ -67,7 +67,7 @@
     options: {
         legend: {display: false},
         scales: {
-        yAxes: [{ticks: {min: 1000, max:5000}}],
+        yAxes: [{ticks: {min: {{min_income}}, max:{{max_income}}}}],
         }
     }
     });
@@ -86,7 +86,7 @@
                         <th>Buy Price</th>
                         <th>Sell Date</th>
                         <th>Sell Price</th>
-                        <th>Earnings($)</th>
+                        <th>Profit($)</th>
                         <th>Details</th>
                     </tr>
                 </thead>
@@ -101,7 +101,7 @@
                         <td>{{ product[4] }}</td>
                         <td>{{ product[6] }}</td>
                         <td>{{ product[7] }}</td>
-                        <td>{{ product[7] - product[4] - product[9] }}</td>
+                        <td>{{ product[12] }}</td>
                         <td>
                             <a class="btn btn-primary" href="/product?productId={{product[11]}}">
                                 Details

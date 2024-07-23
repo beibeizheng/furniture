@@ -75,6 +75,11 @@
             <td>{{incomeItem[1]}}</td>
           </tr>
           {% endfor %}
+          <tr>
+            <th scope="row">Total</th>
+            <td></td>
+            <td>{{c_total_income}}</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -103,7 +108,7 @@
     options: {
         legend: {display: false},
         scales: {
-        yAxes: [{ticks: {min: 10000, max:50000}}],
+        yAxes: [{ticks: {min: {{ min_income}}, max:{{ max_income}}}}],
         }
     }
     });
@@ -175,7 +180,7 @@
                     <th>Buy Price</th>
                     <th>Sell Date</th>
                     <th>Sell Price</th>
-                    <th>Earnings($)</th>
+                    <th>Profit($)</th>
                     <th>Details</th>
                 </tr>
             </thead>
@@ -190,7 +195,7 @@
                     <td>{{ product[4] }}</td>
                     <td>{{ product[6] }}</td>
                     <td>{{ product[7] }}</td>
-                    <td>{{ product[7] - product[4] - product[9] }}</td>
+                    <td>{{ product[12] }}</td>
                     <td>
                         <a class="btn btn-primary" href="/product?productId={{product[11]}}">
                             Details

@@ -34,6 +34,8 @@ import boto3
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 app.config['UPLOAD_FOLDER'] = 'static/images'
+# pythonanywhere
+# app.config['UPLOAD_FOLDER'] = '/home/fu222cs98/mysite/static/images' 
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif','heic'}
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
@@ -85,6 +87,11 @@ register_heif_opener()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+def resize_image(image_path, max_width=1920, max_height=1080):
+    with Image.open(image_path) as img:
+        img.thumbnail((max_width, max_height))
+        img.save(image_path)
+
 def upload_to_cloudflare(file_path, filename):
     try:
         try:
@@ -132,6 +139,9 @@ def home():
             # print("new_filename",filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
+
+             # Resize the image
+            resize_image(file_path)
             
             # Convert HEIC to JPEG if necessary
             if filename.lower().endswith('.heic'):
@@ -149,7 +159,7 @@ def home():
             
 
             upload_to_cloudflare(file_path, filename)
-            os.remove(file_path)
+            os.remove(file_path) # Remove the local file after uploading
             connection1 = getCursor()
             connection1.execute("""Update products SET image_url=%s WHERE product_id=%s;""",(filename,product_id,))
             if sell_date and sell_price and sell_platform_id:
@@ -181,11 +191,13 @@ def home():
 @app.route("/items", methods=["GET"])
 def items():
     search_query = request.args.get("search_query", default="", type=str)
-    filter = request.args.get("filter","")
-    today_date = date.today()
+    status = request.args.get("status","")
+    start_time = request.args.get("start_time","")
+    end_time = request.args.get("end_time","")
+    print("start_time",start_time,end_time)
     connection = getCursor()
-    if filter:
-        if filter == 'today':
+    if status:
+        if start_time and end_time:
             connection.execute("""SELECT p.product_name,
                 c.category_name,
                 s.status_name,
@@ -196,11 +208,8 @@ def items():
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
             LEFT JOIN status s ON p.status_id = s.status_id
-            WHERE p.buy_date = %s ORDER BY p.buy_date DESC;""", (today_date,))
-        elif filter == 'this_week':
-            today = datetime.today()
-            start_of_week = today - timedelta(days=today.weekday())  # Get Monday's date
-            end_of_week = start_of_week + timedelta(days=6)  # Get Sunday's date
+            WHERE p.buy_date BETWEEN %s AND %s AND p.status_id=%s ORDER BY p.buy_date DESC;""", (start_time,end_time,status,))
+        else:
             connection.execute("""SELECT p.product_name,
                 c.category_name,
                 s.status_name,
@@ -210,33 +219,20 @@ def items():
                 p.product_id
             FROM products p
             LEFT JOIN category c ON p.category_id = c.category_id
-            LEFT JOIN status s ON p.status_id = s.status_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_week,end_of_week,))
-        elif filter == 'this_month':
-            start_of_month = datetime(datetime.now().year, datetime.now().month, 1).date()
-            end_of_month = datetime(datetime.now().year, datetime.now().month + 1, 1).date() - timedelta(days=1)
-            connection.execute("""SELECT p.product_name,
-                c.category_name,
-                s.status_name,
-                p.buy_date,
-                p.buy_price,
-                p.image_url,
-                p.product_id
-            FROM products p
-            LEFT JOIN category c ON p.category_id = c.category_id
-            LEFT JOIN status s ON p.status_id = s.status_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_month,end_of_month,))
-        elif filter == 'this_year':
-            start_of_year = datetime(datetime.now().year, 1, 1).date()
-            end_of_year = datetime(datetime.now().year, 12, 31).date()
-            connection.execute("""SELECT p.product_name,
-                c.category_name,
-                s.status_name,
-                p.buy_date,
-                p.buy_price,
-                p.image_url,
-                p.product_id
-            FROM products p
-            LEFT JOIN category c ON p.category_id = c.category_id
-            LEFT JOIN status s ON p.status_id = s.status_id WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_of_year,end_of_year,))
+            LEFT JOIN status s ON p.status_id = s.status_id
+            WHERE p.status_id=%s ORDER BY p.buy_date DESC;""", (status,))
+    elif start_time and end_time:
+        connection.execute("""SELECT p.product_name,
+            c.category_name,
+            s.status_name,
+            p.buy_date,
+            p.buy_price,
+            p.image_url,
+            p.product_id
+        FROM products p
+        LEFT JOIN category c ON p.category_id = c.category_id
+        LEFT JOIN status s ON p.status_id = s.status_id
+        WHERE p.buy_date BETWEEN %s AND %s ORDER BY p.buy_date DESC;""", (start_time,end_time,)) 
     else:
         search_query_like = f"%{search_query}%"
         connection.execute("""SELECT p.product_name,
@@ -257,7 +253,7 @@ def items():
     
     active_page ="items"
     # print('filter',filter)
-    return render_template("items.html", product_list = productList,active_page=active_page,filter=filter)
+    return render_template("items.html", product_list = productList,active_page=active_page,filter=filter,status=status,start_time=start_time,end_time=end_time)
 
 @app.route('/get_product', methods=['GET'])
 def get_product():
@@ -326,6 +322,9 @@ def update_item():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
+        # Resize the image
+        resize_image(file_path)
+
         # Convert HEIC to JPEG if necessary
         if filename.lower().endswith('.heic'):
             try:
@@ -367,30 +366,32 @@ def update_item():
         sell_price = request.form.get(f'sell_price{i}')or None
         sell_platform = request.form.get(f'sell_platform{i}')or None
         fee = request.form.get(f'fees{i}')or 0
-        sell_id = request.form.get(f'sell_id{i}')or None
+        sell_id = request.form.get(f'sell_id{i}') or None
         # print("sell_id",sell_id)
+        # print("sell_date",sell_date)
         connection = getCursor()
         if sell_id and sell_id!= 'undefined':
-            if sell_date and sell_price and sell_platform:
+            if sell_date and sell_price:
                 connection.execute("""UPDATE sales SET 
                 sell_date = %s,
                 sell_price = %s,
                 sell_platform_id = %s,
                 fees = %s
                 WHERE sale_id = %s;""",(sell_date,sell_price,sell_platform,fee,sell_id,))
-            elif sell_date is None and sell_price is None and sell_platform is None:
+            elif sell_date is None and sell_price is None:
                 connection.execute("""DELETE FROM sales 
                 WHERE sale_id = %s;""",(sell_id,))
-                connection.execute("""SELECT * FROM sales 
+                connection1 = getCursor()
+                connection1.execute("""SELECT * FROM sales 
                 WHERE product_id = %s;""",(product_id,))
-                sales_list = connection.fetchall()
+                sales_list = connection1.fetchall()
                 if not sales_list :
                     connection.execute("""UPDATE products SET 
                     status_id = (SELECT status_id FROM status WHERE status_name = 'Selling')
                     WHERE product_id = %s;""",(product_id,))
 
         else:
-            if sell_date and sell_price and sell_platform:
+            if sell_date and sell_price:
                 connection.execute("""INSERT INTO sales (product_id, sell_date, sell_price, sell_platform_id, fees)
                                 VALUES (%s, %s, %s, %s, %s);""",
                             (product_id, sell_date, sell_price, sell_platform,fee))
@@ -410,79 +411,124 @@ def report():
     
     if range_value=='year':
         connection3 = getCursor()
-        connection3.execute("""SELECT MONTH(sell_date) AS Month,
-       SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
-           ELSE 0 END) AS total_revenue
-        FROM sales s JOIN products p on s.product_id = p.product_id WHERE sell_date IS NOT NULL AND YEAR(sell_date) = YEAR(CURDATE())
-        GROUP BY MONTH(sell_date)
-        ORDER BY Month;""")
+        connection3.execute("""SELECT s.sell_month AS Month,SUM(s.total_sell_price - p.buy_price - s.total_fees) AS total_revenue
+            FROM (
+                SELECT product_id,
+                    MONTH(sell_date) AS sell_month,
+                    SUM(sell_price) AS total_sell_price,
+                    SUM(fees) AS total_fees
+                FROM sales
+                WHERE YEAR(sell_date) = YEAR(CURDATE())
+                GROUP BY product_id, sell_month
+            
+            ) s
+            JOIN products p ON s.product_id = p.product_id
+            WHERE p.status_id = 1 
+            GROUP BY s.sell_month
+            ORDER BY Month;""")
         monthlylist = connection3.fetchall()
         month_list = [calendar.month_name[row[0]] for row in monthlylist]
         mIncome_list = [float(item[1]) for item in monthlylist] 
+        total_year ="{:.2f}".format(sum(mIncome_list))
+        min_income = min(mIncome_list)
+        max_income = max(mIncome_list)
 
         connection4 = getCursor()
         connection4.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id,(SUM(s.sell_price) - p.buy_price - s.fees) AS profit
                 FROM sales s JOIN products p on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
                 LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE())
+                GROUP BY p.product_id
                 ORDER BY s.sell_date DESC;""")
                 
         productList = connection4.fetchall()
 
-        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist,product_list=productList )
+        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist,product_list=productList,total_year =total_year,min_income=min_income,max_income=max_income  )
     elif range_value=='month':
         connection3 = getCursor()
-        connection3.execute("""SELECT DAY(sell_date) AS Day,
-           SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
-                    ELSE 0 END) AS daily_revenue
-            FROM sales s JOIN products p on s.product_id = p.product_id
-            WHERE sell_date IS NOT NULL AND MONTH(sell_date) = MONTH(CURDATE()) AND YEAR(sell_date) = YEAR(CURDATE())
-            GROUP BY DAY(sell_date)
-            ORDER BY Day;""")
+        connection3.execute("""SELECT 
+            CONCAT(DATE_FORMAT(week_start, '%Y-%m-%d'), ' - ', DATE_FORMAT(week_end, '%Y-%m-%d')) AS week_range,
+            SUM(profit) AS weekly_profit
+                FROM (
+            SELECT
+                MIN(s.sell_date) AS first_sell_date,
+                s.product_id,
+                (SUM(s.sell_price) - SUM(s.fees) - p.buy_price) AS profit,
+                DATE_SUB(MIN(s.sell_date), INTERVAL WEEKDAY(MIN(s.sell_date)) DAY) AS week_start,
+                DATE_ADD(DATE_SUB(MIN(s.sell_date), INTERVAL WEEKDAY(MIN(s.sell_date)) DAY), INTERVAL 6 DAY) AS week_end
+            FROM sales s
+            JOIN products p ON s.product_id = p.product_id
+            WHERE 
+                YEAR(s.sell_date) = YEAR(CURDATE()) AND 
+                MONTH(s.sell_date) = MONTH(CURDATE())
+            GROUP BY s.product_id
+            ) AS product_profits
+            GROUP BY week_start, week_end
+            ORDER BY week_start;""")
         daylist = connection3.fetchall()
         day_list = [row[0] for row in daylist]
         dIncome_list = [float(item[1]) for item in daylist]
-        total_income = sum(dIncome_list)
+        total_income = "{:.2f}".format(sum(dIncome_list))
+        min_income = min(dIncome_list)
+        max_income = max(dIncome_list)
 
         connection4 = getCursor()
         connection4.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id,(SUM(s.sell_price) - p.buy_price - s.fees) AS profit
                 FROM sales s JOIN products p on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
                 LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE()) AND MONTH(sell_date) = MONTH(CURDATE())
+                GROUP BY p.product_id
                 ORDER BY s.sell_date DESC;""")
                 
         productList = connection4.fetchall()
 
-        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income,product_list=productList )
+        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income,product_list=productList,min_income=min_income,max_income=max_income )
     else:
         connection1 = getCursor()
-        connection1.execute("""SELECT c.category_name, sum(s.sell_price -s.fees -p.buy_price) as income 
-            FROM products p JOIN sales s on s.product_id = p.product_id 
+        connection1.execute("""SELECT c.category_name, SUM(s.total_sell_price - p.buy_price - s.total_fees) AS profit
+                        FROM (SELECT product_id,
+                        SUM(sell_price) AS total_sell_price,
+                        SUM(fees) AS total_fees
+                    FROM sales
+                    GROUP BY product_id
+                    ) s
+            JOIN products p ON s.product_id = p.product_id
             join category c on c.category_id=p.category_id
-                    where p.status_id =1
-                    group by c.category_name
-                    order by income desc;""")
+            where p.status_id =1
+            group by c.category_name
+            order by profit desc;""")
         incomelist = connection1.fetchall()
         category_list = [item[0] for item in incomelist]
         income_list = [float(item[1]) for item in incomelist] 
+        c_total_income = "{:.2f}".format(sum(income_list))
         # print("incomelist",incomelist)
         connection2 = getCursor()
-        connection2.execute("""SELECT YEAR(sell_date) AS year,
-        SUM(CASE WHEN sell_price IS NOT NULL AND buy_price IS NOT NULL THEN sell_price - buy_price - fees
-            ELSE 0 END) AS total_revenue FROM products p JOIN sales s on s.product_id = p.product_id 
-        WHERE  sell_date IS NOT NULL
-        GROUP BY YEAR(sell_date)
-        ORDER BY year;""")
+        connection2.execute("""SELECT s.sell_year AS Year,SUM(s.total_sell_price - p.buy_price - s.total_fees) AS total_revenue
+            FROM (
+                SELECT product_id,
+                    YEAR(sell_date) AS sell_year,
+                    SUM(sell_price) AS total_sell_price,
+                    SUM(fees) AS total_fees
+                FROM sales
+                GROUP BY product_id, sell_year
+            
+            ) s
+            JOIN products p ON s.product_id = p.product_id
+            WHERE p.status_id = 1 
+            GROUP BY s.sell_year
+            ORDER BY Year;""")
         yearlylist = connection2.fetchall()
         year_list = [item[0] for item in yearlylist]
         yIncome_list = [float(item[1]) for item in yearlylist] 
-        total_income = sum(yIncome_list)
+        total_income = "{:.2f}".format(sum(yIncome_list))
+        min_income= min(yIncome_list)
+        max_income = max(yIncome_list)
 
         connection4 = getCursor()
         connection4.execute("""SELECT 
@@ -493,24 +539,27 @@ def report():
 
         connection5 = getCursor()
         connection5.execute("""SELECT p.product_name,c.category_name,st.status_name,p.buy_date,p.buy_price,bpf.platform_name AS buy_platform_name,
-                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id
+                s.sell_date,s.sell_price,spf.platform_name AS sell_platform_name,s.fees,image_url,p.product_id,(SUM(s.sell_price) - p.buy_price - s.fees) AS profit
                 FROM products p JOIN sales s on s.product_id = p.product_id 
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE p.status_id = 1 ORDER BY s.sell_date DESC;""")
+                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE p.status_id = 1 
+                GROUP BY p.product_id
+                ORDER BY s.sell_date DESC;""")
                 
         productList = connection5.fetchall()
         # print('productListhh',productList)
         connection6 = getCursor()
-        connection6.execute("""SELECT p.product_name, s.sell_price - s.fees- p.buy_price AS income
+        connection6.execute("""SELECT p.product_name, (SUM(s.sell_price) - p.buy_price - s.fees) AS profit
                 FROM products p JOIN sales s on s.product_id = p.product_id 
                 WHERE status_id = 1
-                ORDER BY income DESC
+                GROUP BY p.product_id
+                ORDER BY profit DESC
                 LIMIT 10;""")
         pIncomelist = connection6.fetchall()
 
-        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList,pIncomelist=pIncomelist)
+        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList,pIncomelist=pIncomelist,c_total_income=c_total_income, min_income= min_income, max_income= max_income)
     # print('range_value ',range_value )
    
 def get_lists():

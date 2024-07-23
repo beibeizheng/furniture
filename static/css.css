@@ -141,8 +141,16 @@ body {
     box-sizing: border-box;
   }
   
-  input[type=text], select, textarea ,input[type=number]{
+  .container input[type=text], select, textarea ,input[type=number]{
     width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+  }
+
+  .container input[type=date]{
+    width: 50%;
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -251,12 +259,35 @@ body {
     background-color: #6f8edd;}
 
 
+   .items .item_card {
+      width: 18rem;
+      margin-bottom: 10px;
+  }
+  .items .item_card img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+  }
+  .items .card-body {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+  }
+
+  .navbar select{
+    margin-left: 5px;
+    padding: 8px;
+  }
+
 /* product page */
 
 .pro_title{
   color: red;
   padding-left: 5px;
 }
+
 .card-size{
   width: 100%; 
   max-width: 800px;
