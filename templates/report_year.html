@@ -8,7 +8,17 @@
 {% block content %}
 <nav class="nav nav-pills flex-column flex-sm-row">
     <a class="flex-sm-fill text-sm-center nav-link  aria-current="page" href="/report">All Data</a>
-    <a class="flex-sm-fill text-sm-center nav-link active" href="/report?range=year">This Year</a>
+    <div class="dropdown">
+        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Dropdown button
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="/report?range=year">This Year</a></li>
+          <li><a class="dropdown-item" href="#">Another action</a></li>
+          <li><a class="dropdown-item" href="#">Something else here</a></li>
+        </ul>
+      </div>
+    <!-- <a class="flex-sm-fill text-sm-center nav-link active" href="/report?range=year">This Year</a> -->
     <a class="flex-sm-fill text-sm-center nav-link " href="/report?range=month">This Month</a>
     <!-- <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=week">This Week</a> -->
 </nav>

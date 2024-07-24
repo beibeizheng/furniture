@@ -410,6 +410,7 @@ def report():
     range_value = request.args.get("range", default="", type=str)
     
     if range_value=='year':
+        year_value = request.args.get("value")
         connection3 = getCursor()
         connection3.execute("""SELECT s.sell_month AS Month,SUM(s.total_sell_price - p.buy_price - s.total_fees) AS total_revenue
             FROM (
@@ -418,14 +419,14 @@ def report():
                     SUM(sell_price) AS total_sell_price,
                     SUM(fees) AS total_fees
                 FROM sales
-                WHERE YEAR(sell_date) = YEAR(CURDATE())
+                WHERE YEAR(sell_date) = %s
                 GROUP BY product_id, sell_month
             
             ) s
             JOIN products p ON s.product_id = p.product_id
             WHERE p.status_id = 1 
             GROUP BY s.sell_month
-            ORDER BY Month;""")
+            ORDER BY Month;""",(year_value,))
         monthlylist = connection3.fetchall()
         month_list = [calendar.month_name[row[0]] for row in monthlylist]
         mIncome_list = [float(item[1]) for item in monthlylist] 
@@ -440,14 +441,16 @@ def report():
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE())
+                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = %s
                 GROUP BY p.product_id
-                ORDER BY s.sell_date DESC;""")
+                ORDER BY s.sell_date DESC;""",(year_value,))
                 
         productList = connection4.fetchall()
 
         return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist,product_list=productList,total_year =total_year,min_income=min_income,max_income=max_income  )
     elif range_value=='month':
+        month_value = request.args.get("value")
+        year, month = month_value.split('-')
         connection3 = getCursor()
         connection3.execute("""SELECT 
             CONCAT(DATE_FORMAT(week_start, '%Y-%m-%d'), ' - ', DATE_FORMAT(week_end, '%Y-%m-%d')) AS week_range,
@@ -462,12 +465,12 @@ def report():
             FROM sales s
             JOIN products p ON s.product_id = p.product_id
             WHERE 
-                YEAR(s.sell_date) = YEAR(CURDATE()) AND 
-                MONTH(s.sell_date) = MONTH(CURDATE())
+                YEAR(s.sell_date) = %s AND 
+                MONTH(s.sell_date) = %s
             GROUP BY s.product_id
             ) AS product_profits
             GROUP BY week_start, week_end
-            ORDER BY week_start;""")
+            ORDER BY week_start;""",(year,month,))
         daylist = connection3.fetchall()
         day_list = [row[0] for row in daylist]
         dIncome_list = [float(item[1]) for item in daylist]
@@ -482,9 +485,9 @@ def report():
                 LEFT JOIN category c ON p.category_id = c.category_id
                 LEFT JOIN status st ON p.status_id = st.status_id
                 LEFT JOIN platform bpf ON p.buy_platform_id = bpf.platform_id
-                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = YEAR(CURDATE()) AND MONTH(sell_date) = MONTH(CURDATE())
+                LEFT JOIN platform spf ON s.sell_platform_id = spf.platform_id WHERE st.status_name = 'Sold' AND YEAR(sell_date) = %s AND MONTH(sell_date) = %s
                 GROUP BY p.product_id
-                ORDER BY s.sell_date DESC;""")
+                ORDER BY s.sell_date DESC;""",(year,month,))
                 
         productList = connection4.fetchall()
 
@@ -558,8 +561,29 @@ def report():
                 ORDER BY profit DESC
                 LIMIT 10;""")
         pIncomelist = connection6.fetchall()
+        yearlist, monthlist = get_time_ranges()
+        context = {
+                        'range_value': range_value,
+                        'active_page': active_page,
+                        'incomelist': incomelist,
+                        'category_list': category_list,
+                        'income_list': income_list,
+                        'yearlylist': yearlylist,
+                        'year_list': year_list,
+                        'yIncome_list': yIncome_list,
+                        'total_income': total_income,
+                        'paylist': paylist,
+                        'product_list': productList,
+                        'pIncomelist': pIncomelist,
+                        'c_total_income': c_total_income,
+                        'min_income': min_income,
+                        'max_income': max_income,
+                        'yearlist': yearlist,
+                        'monthlist': monthlist
+                }
 
-        return render_template("report_all.html",range_value=range_value,active_page=active_page,incomelist=incomelist,category_list=category_list,income_list =income_list,yearlylist=yearlylist,year_list=year_list,yIncome_list=yIncome_list,total_income=total_income,paylist=paylist,product_list=productList,pIncomelist=pIncomelist,c_total_income=c_total_income, min_income= min_income, max_income= max_income)
+
+        return render_template("report_all.html", **context)
     # print('range_value ',range_value )
    
 def get_lists():
@@ -575,6 +599,14 @@ def get_lists():
     platformList = connection.fetchall()
     
     return categoryList, statusList, platformList
+
+def get_time_ranges():
+    connection = getCursor()
+    connection.execute("""SELECT DISTINCT YEAR(sell_date) AS sale_year FROM sales;""")
+    yearList = connection.fetchall()
+    connection.execute("""SELECT DISTINCT DATE_FORMAT(sell_date, '%Y-%m') AS months FROM sales ORDER BY months;""")
+    monthsList = connection.fetchall()
+    return yearList , monthsList
 
 
 

@@ -14,15 +14,14 @@
             <div class="col-lg-4 col-sm-12 mb-2">
                 <form method="GET" action="/items" class="form-inline d-flex justify-content-between">
                     <div class="d-flex align-items-center w-100">
-                        <label class="mr-2">Filter:</label>
+                        <label class="mr-2" for="start_time">Buy_Date:</label>
                         <input class="form-control mr-2" type="date" id="start_time" name="start_time" value={{start_time}}>
                         <span> - </span>
                         <input class="form-control mr-2" type="date" id="end_time" name="end_time" value={{end_time}}>
                     </div>
-                </form>
             </div>
             <div class="col-lg-4 col-sm-12 mb-2">
-                <form method="GET" action="/items" class="form-inline d-flex justify-content-between">
+    
                     <div class="d-flex align-items-center w-100">
                         <select id="status" name="status" class="form-control mr-2">
                             <option value="" {% if status=="" %} selected {% endif %}>ALL</option>
@@ -47,6 +46,18 @@
         </div>
     </div>
 </nav>
+    <!-- <div class="col-lg-6 col-sm-12 mb-2">
+        <form method="POST" action="/items" class="form-inline d-flex justify-content-between">
+            <div class="d-flex align-items-center w-100">
+                <label class="mr-2" for="start_time">Sold_Date:</label>
+                <input class="form-control mr-2" type="date" id="start_time" name="start_time" value={{start_time}}>
+                <span> - </span>
+                <input class="form-control mr-2" type="date" id="end_time" name="end_time" value={{end_time}}>
+                <button class="btn btn-outline-success" type="submit">Submit</button>
+            </div>
+            </form>
+    </div> -->
+
 
 
 

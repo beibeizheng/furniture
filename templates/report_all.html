@@ -6,11 +6,35 @@
 {% endblock %}
 
 {% block content %}
-<nav class="nav nav-pills flex-column flex-sm-row">
-    <a class="flex-sm-fill text-sm-center nav-link active" aria-current="page" href="/report">All Data</a>
-    <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=year">This Year</a>
-    <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=month">This Month</a>
-    <!-- <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=week">This Week</a> -->
+<nav class="flex-column d-flex justify-content-around flex-sm-row report">
+  <a class="btn btn-success " href="/report" role="button">All Data</a>
+
+  <div class="dropdown flex-sm-row ">
+      <button class="btn btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Years
+      </button>
+      <ul class="dropdown-menu w-100">
+          {% for year in yearlist %}
+          <li><a class="dropdown-item" href="/report?range=year&value={{year[0]}}">{{year[0]}}</a></li>
+          {% endfor %}
+      </ul>
+  </div>
+
+  <div class="dropdown flex-sm-row ">
+      <button class="btn btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Months
+      </button>
+      <ul class="dropdown-menu w-100">
+          {% for month in monthlist %}
+          <li><a class="dropdown-item" href="/report?range=month&value={{month[0]}}">{{month[0]}}</a></li>
+          {% endfor %}
+      </ul>
+  </div>
+
+  <!-- Commented out links for reference -->
+  <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=year">This Year</a> -->
+  <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=month">This Month</a> -->
+  <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=week">This Week</a> -->
 </nav>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 

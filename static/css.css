@@ -384,4 +384,19 @@ body {
     margin-left: auto;
     margin-right: auto;
   }
+
+  .report .dropdown .dropdown-toggle,
+  .dropdown .dropdown-menu {
+      width: 100%;
+  }
+
+  .report .dropdown .dropdown-menu .dropdown-item {
+      display: block;
+      width: 100%;
+      text-align: center;
+  }
+
+  .report .dropdown, .report .btn {
+    margin: 10px;
+  }
 }
