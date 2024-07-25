@@ -249,6 +249,10 @@ def items():
     productList = connection.fetchall()
     if not productList:
         flash('No data available!', 'error')
+    else:
+        pro_lenth = len(productList)
+        flash(f'{pro_lenth} products are shown below:', 'success')
+
 
     
     active_page ="items"
@@ -408,9 +412,9 @@ def update_item():
 def report():
     active_page ="report"
     range_value = request.args.get("range", default="", type=str)
-    
+    active_btn = "all"
     if range_value=='year':
-        year_value = request.args.get("value")
+        year_value = request.args.get("value",default="Each Year")
         connection3 = getCursor()
         connection3.execute("""SELECT s.sell_month AS Month,SUM(s.total_sell_price - p.buy_price - s.total_fees) AS total_revenue
             FROM (
@@ -446,10 +450,25 @@ def report():
                 ORDER BY s.sell_date DESC;""",(year_value,))
                 
         productList = connection4.fetchall()
-
-        return render_template("report_year.html",active_page=active_page,month_list=month_list,mIncome_list=mIncome_list,monthlylist=monthlylist,product_list=productList,total_year =total_year,min_income=min_income,max_income=max_income  )
+        active_btn ="years"
+        yearlist, monthlist = get_time_ranges()
+        context = {
+                        'active_page': active_page,
+                        'month_list': month_list,
+                        'mIncome_list': mIncome_list,
+                        'monthlylist': monthlylist,
+                        'product_list': productList,
+                        'total_year': total_year,
+                        'min_income': min_income,
+                        'max_income': max_income,
+                        'yearlist': yearlist,
+                        'monthlist': monthlist,
+                        'year_value':year_value,
+                        'active_btn': active_btn   
+                }
+        return render_template("report_year.html",**context )
     elif range_value=='month':
-        month_value = request.args.get("value")
+        month_value = request.args.get("value",default="Each Month")
         year, month = month_value.split('-')
         connection3 = getCursor()
         connection3.execute("""SELECT 
@@ -490,8 +509,24 @@ def report():
                 ORDER BY s.sell_date DESC;""",(year,month,))
                 
         productList = connection4.fetchall()
+        active_btn ="months"
+        yearlist, monthlist = get_time_ranges()
+        context = {
+                        'active_page': active_page,
+                        'day_list': day_list,
+                        'dIncome_list': dIncome_list,
+                        'daylist': daylist,
+                        'product_list': productList,
+                        'total_income': total_income,
+                        'min_income': min_income,
+                        'max_income': max_income,
+                        'yearlist': yearlist,
+                        'monthlist': monthlist,
+                        'month_value':month_value,
+                        'active_btn': active_btn  
+                }
 
-        return render_template("report_month.html",active_page=active_page,day_list=day_list,dIncome_list=dIncome_list,daylist=daylist,total_income=total_income,product_list=productList,min_income=min_income,max_income=max_income )
+        return render_template("report_month.html",**context )
     else:
         connection1 = getCursor()
         connection1.execute("""SELECT c.category_name, SUM(s.total_sell_price - p.buy_price - s.total_fees) AS profit
@@ -579,7 +614,8 @@ def report():
                         'min_income': min_income,
                         'max_income': max_income,
                         'yearlist': yearlist,
-                        'monthlist': monthlist
+                        'monthlist': monthlist,
+                        'active_btn':active_btn
                 }
 
 
@@ -602,9 +638,9 @@ def get_lists():
 
 def get_time_ranges():
     connection = getCursor()
-    connection.execute("""SELECT DISTINCT YEAR(sell_date) AS sale_year FROM sales;""")
+    connection.execute("""SELECT DISTINCT YEAR(sell_date) AS sale_year FROM sales WHERE sell_date IS NOT NULL; """)
     yearList = connection.fetchall()
-    connection.execute("""SELECT DISTINCT DATE_FORMAT(sell_date, '%Y-%m') AS months FROM sales ORDER BY months;""")
+    connection.execute("""SELECT DISTINCT DATE_FORMAT(sell_date, '%Y-%m') AS months FROM sales WHERE sell_date IS NOT NULL ORDER BY months DESC;""")
     monthsList = connection.fetchall()
     return yearList , monthsList
 

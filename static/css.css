@@ -4,8 +4,24 @@ body {
   min-width: 0;
 }
 
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+}
+
+label {
+  white-space: nowrap;
+}
+
 .container{
   background-color: white!important;
+}
+
+table{
+  margin: 0 15px;
 }
 
 /* Reset some basic styles */
@@ -277,7 +293,7 @@ body {
   }
 
   .navbar select{
-    margin-left: 5px;
+    margin: 0 5px;
     padding: 8px;
   }
 
@@ -310,12 +326,24 @@ body {
   height: 100px;
 }
 
+
+/* report page */
+
 .report .list-inline{
   padding: 25px 0;
 }
 
 .report .list-inline mark{
   color: red;
+}
+
+.report-nav .dropdown-menu {
+  max-height: 200px; /* Adjust this value as needed */
+  overflow-y: auto;
+}
+
+.dropdown-item.active, .dropdown-item:active{
+  background-color: #13653f !important;
 }
 
 
@@ -385,18 +413,23 @@ body {
     margin-right: auto;
   }
 
-  .report .dropdown .dropdown-toggle,
+  .report-nav .dropdown .dropdown-toggle,
   .dropdown .dropdown-menu {
-      width: 100%;
+      max-width: 100%;
   }
 
-  .report .dropdown .dropdown-menu .dropdown-item {
+  .report-nav .dropdown .dropdown-menu .dropdown-item {
       display: block;
-      width: 100%;
+     max-width: 100%;
       text-align: center;
   }
 
-  .report .dropdown, .report .btn {
-    margin: 10px;
+   .report-nav .btn {
+    margin: 10px 0;
+    max-width: 100%;
+  }
+
+  .report-nav{
+    padding: 0 10px;
   }
 }

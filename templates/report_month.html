@@ -6,12 +6,36 @@
 {% endblock %}
 
 {% block content %}
-<nav class="nav nav-pills flex-column flex-sm-row">
-    <a class="flex-sm-fill text-sm-center nav-link" aria-current="page" href="/report">All Data</a>
-    <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=year">This Year</a>
-    <a class="flex-sm-fill text-sm-center nav-link active" href="/report?range=month">This Month</a>
-    <!-- <a class="flex-sm-fill text-sm-center nav-link "href="/report?range=week">This Week</a> -->
-</nav>
+<nav class="flex-column d-flex justify-content-around flex-sm-row report-nav">
+    <a class="btn {% if active_btn == 'all' %}btn-success{% else %}btn-secondary{% endif %}" href="/report" role="button">All Data</a>
+  
+    <div class="dropdown flex-sm-row ">
+        <button class="btn dropdown-toggle w-100 {% if active_btn == 'years' %}btn-success{% else %}btn-secondary{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Each Year
+        </button>
+        <ul class="dropdown-menu w-100">
+            {% for year in yearlist %}
+            <li><a class="dropdown-item" href="/report?range=year&value={{year[0]}}">{{year[0]}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+  
+    <div class="dropdown flex-sm-row ">
+        <button class="btn dropdown-toggle w-100 {% if active_btn == 'months' %}btn-success{% else %}btn-secondary{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {{month_value}}
+        </button>
+        <ul class="dropdown-menu w-100">
+            {% for month in monthlist %}
+            <li><a class="dropdown-item {% if month_value == month[0] %}active{% endif %}" href="/report?range=month&value={{month[0]}}">{{month[0]}}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+  
+    <!-- Commented out links for reference -->
+    <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=year">This Year</a> -->
+    <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=month">This Month</a> -->
+    <!-- <a class="flex-sm-fill text-sm-center nav-link" href="/report?range=week">This Week</a> -->
+  </nav>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 
 
@@ -127,7 +151,8 @@
                 "order": [[4, "desc"]],
                 "columnDefs": [
                     { "orderable": true, "targets": [4, 6] }
-                ]
+                ],
+                "lengthMenu": [500]
             });
         });
     </script>

@@ -6,12 +6,12 @@
 {% endblock %}
 
 {% block content %}
-<nav class="flex-column d-flex justify-content-around flex-sm-row report">
-  <a class="btn btn-success " href="/report" role="button">All Data</a>
+<nav class="flex-column d-flex justify-content-around flex-sm-row report-nav">
+  <a class="btn {% if active_btn == 'all' %}btn-success{% else %}btn-secondary{% endif %}" href="/report" role="button">All Data</a>
 
   <div class="dropdown flex-sm-row ">
-      <button class="btn btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          Years
+      <button class="btn dropdown-toggle w-100 {% if active_btn == 'years' %}btn-success{% else %}btn-secondary{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Each Year
       </button>
       <ul class="dropdown-menu w-100">
           {% for year in yearlist %}
@@ -21,12 +21,12 @@
   </div>
 
   <div class="dropdown flex-sm-row ">
-      <button class="btn btn-success dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          Months
+      <button class="btn dropdown-toggle w-100 {% if active_btn == 'months' %}btn-success{% else %}btn-secondary{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+         Each Month
       </button>
       <ul class="dropdown-menu w-100">
           {% for month in monthlist %}
-          <li><a class="dropdown-item" href="/report?range=month&value={{month[0]}}">{{month[0]}}</a></li>
+          <li><a class="dropdown-item " href="/report?range=month&value={{month[0]}}">{{month[0]}}</a></li>
           {% endfor %}
       </ul>
   </div>
@@ -246,7 +246,8 @@
             "order": [[4, "desc"]],
             "columnDefs": [
                 { "orderable": true, "targets": [4, 6] }
-            ]
+            ],
+            "lengthMenu": [500]
         });
     });
 </script>
